@@ -1,4 +1,4 @@
-# ynamic Programming Algorithms
+# Dynamic Programming Algorithms
 Knapsack Problem (0/1, Unbounded, and Fractional)
 
 Challenge: Different variations require unique DP table setups and optimizations. Fractional knapsack also involves greedy techniques.
