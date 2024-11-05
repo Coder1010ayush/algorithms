@@ -1,4 +1,4 @@
-Dynamic Programming Algorithms
+# ynamic Programming Algorithms
 Knapsack Problem (0/1, Unbounded, and Fractional)
 
 Challenge: Different variations require unique DP table setups and optimizations. Fractional knapsack also involves greedy techniques.
@@ -15,7 +15,7 @@ Challenge: A variation of knapsack, challenging due to its exponential time comp
 Optimal Matrix Chain Multiplication
 
 Challenge: Requires understanding of dynamic programming and partitioning, finding the optimal order to minimize multiplication operations.
-Graph Algorithms
+# Graph Algorithms
 Dijkstra’s Algorithm for Shortest Path
 
 Challenge: Implementing it efficiently using priority queues (like heaps) for weighted graphs.
@@ -41,7 +41,7 @@ Prim’s and Kruskal’s Algorithms for Minimum Spanning Tree
 
 Challenge: Building MSTs with different approaches, including priority queues (Prim’s) and sorting/union-find (Kruskal’s).
 
-Computational Geometry
+# Computational Geometry
 
 Convex Hull (Graham’s Scan and Jarvis March)
 
@@ -59,7 +59,7 @@ Bentley-Ottmann Algorithm for Finding All Intersections in a Plane
 
 Challenge: Sweep line algorithm to efficiently detect all intersections in a set of line segments.
 
-String Algorithms
+# String Algorithms
 KMP (Knuth-Morris-Pratt) Pattern Matching
 
 Challenge: Building a partial match table for efficient substring searches, especially challenging to implement the table correctly.
@@ -75,7 +75,8 @@ Challenge: An efficient pattern matching algorithm based on Z-values, ideal for 
 Aho-Corasick Automaton for Multi-Pattern Matching
 
 Challenge: Constructs a finite state machine for matching multiple patterns, requiring efficient handling of failure links.
-Other Challenging Algorithms
+
+# Other Challenging Algorithms
 FFT (Fast Fourier Transform)
 
 Challenge: Used in signal processing, it’s complex due to its recursive divide-and-conquer approach in the frequency domain.
@@ -89,7 +90,7 @@ Bloom Filter
 
 Challenge: A space-efficient probabilistic data structure for set membership, requiring careful handling of false positives and hashing.
 
-Dynamic Programming on Bitmasks
+# Dynamic Programming on Bitmasks
 Challenge: Useful in subset problems and combinatorics, requiring efficient handling of bitwise operations for state representation.
 Disjoint Set Union (Union-Find) with Path Compression
 
@@ -190,7 +191,7 @@ Challenge: Maintaining top-tree properties dynamically as nodes are added or rem
 
 -----------------------------------------------------------------------
 
-Supervised Learning Algorithms
+# Supervised Learning Algorithms
 
 Linear Regression
 
@@ -246,7 +247,7 @@ Quantile Regression
 
 Stochastic Gradient Descent (SGD)
 
-Unsupervised Learning Algorithms
+# Unsupervised Learning Algorithms
 
 k-Means Clustering
 
@@ -286,7 +287,7 @@ Tri-Training
 
 Generative Adversarial Networks (GANs)
 
-Reinforcement Learning Algorithms
+# Reinforcement Learning Algorithms
 Q-Learning
 
 SARSA (State-Action-Reward-State-Action)
@@ -307,7 +308,7 @@ Soft Actor-Critic (SAC)
 
 Monte Carlo Tree Search (MCTS)
 
-Ensemble Learning Algorithms
+# Ensemble Learning Algorithms
 
 Bagging
 
@@ -340,7 +341,7 @@ BIRCH (Balanced Iterative Reducing and Clustering using Hierarchies)
 
 OPTICS (Ordering Points To Identify the Clustering Structure)
 
-Other Advanced Techniques
+# Other Advanced Techniques
 
 Bayesian Networks
 
