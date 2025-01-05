@@ -1,20 +1,3 @@
-# Dynamic Programming Algorithms
-Knapsack Problem (0/1, Unbounded, and Fractional)
-
-Challenge: Different variations require unique DP table setups and optimizations. Fractional knapsack also involves greedy techniques.
-Longest Increasing Subsequence (LIS)
-
-Challenge: Optimal 𝑂(log𝑛)
-O(nlogn) solution uses binary search; interesting for practicing dynamic programming with binary search integration.
-Edit Distance (Levenshtein Distance)
-
-Challenge: A DP-based solution for measuring string similarity, commonly used in spell checking and DNA sequence analysis.
-Subset Sum Problem
-
-Challenge: A variation of knapsack, challenging due to its exponential time complexity and requiring optimization for large inputs.
-Optimal Matrix Chain Multiplication
-
-Challenge: Requires understanding of dynamic programming and partitioning, finding the optimal order to minimize multiplication operations.
 # Graph Algorithms
 Dijkstra’s Algorithm for Shortest Path
 
@@ -59,23 +42,6 @@ Bentley-Ottmann Algorithm for Finding All Intersections in a Plane
 
 Challenge: Sweep line algorithm to efficiently detect all intersections in a set of line segments.
 
-# String Algorithms
-KMP (Knuth-Morris-Pratt) Pattern Matching
-
-Challenge: Building a partial match table for efficient substring searches, especially challenging to implement the table correctly.
-Rabin-Karp Algorithm for Multiple Pattern Matching
-
-Challenge: Efficient for matching multiple patterns using hashing techniques, tricky due to managing hash collisions.
-Suffix Array Construction
-
-Challenge: Allows efficient substring search, constructed via complex sorting and ranking of suffixes.
-Z Algorithm for Pattern Matching
-
-Challenge: An efficient pattern matching algorithm based on Z-values, ideal for repeated patterns within strings.
-Aho-Corasick Automaton for Multi-Pattern Matching
-
-Challenge: Constructs a finite state machine for matching multiple patterns, requiring efficient handling of failure links.
-
 # Other Challenging Algorithms
 FFT (Fast Fourier Transform)
 
@@ -89,18 +55,6 @@ Challenge: A population-based search algorithm using selection, crossover, and m
 Bloom Filter
 
 Challenge: A space-efficient probabilistic data structure for set membership, requiring careful handling of false positives and hashing.
-
-# Dynamic Programming on Bitmasks
-Challenge: Useful in subset problems and combinatorics, requiring efficient handling of bitwise operations for state representation.
-Disjoint Set Union (Union-Find) with Path Compression
-
-Challenge: Efficiently manages dynamic connectivity in graph components, complex with optimizations like path compression and union by rank.
-Ant Colony Optimization
-
-Challenge: A metaheuristic for solving combinatorial optimization problems, complex due to simulation of pheromone trails and ant behavior.
-
-
-
 
 -------------------------------------------------------------------
 1. Red-Black Tree
@@ -182,11 +136,6 @@ Challenge: Complex recursive structure and memory-intensive design.
 20. Top-Tree (for Tree Path Queries)
 A tree decomposition structure that allows efficient path queries, especially in graph applications.
 Challenge: Maintaining top-tree properties dynamically as nodes are added or removed.
-
-
-
-
-
 
 
 -----------------------------------------------------------------------
@@ -354,8 +303,6 @@ VAE (Variational Autoencoder)
 Deep Belief Networks (DBN)
 
 Attention Mechanisms and Self-Attention Models
-
-
 
 # FUN WITH IMPLAMENTING ALL THESE ALGORITHM , FANTASTIC WEEKEND  
 
