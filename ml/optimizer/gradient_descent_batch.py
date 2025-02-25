@@ -13,15 +13,33 @@ class GradientDescentBatch:
         learning_rate=1e-3,
         tolerence=1e-6,
         debug_mode="off",
-        debug_step = 10
+        debug_step = 10,
+        norm = "" , 
+        l1_lambda = 0.2 , 
+        l2_lambda = 0.1 ,
+        el_param = 0.9
     ):
         self.epochs = epochs
         self.learning_rate = learning_rate
         self.tolerance = tolerence
         self.debug_mode = debug_mode
         self.intercept = 0.0
-        self.debug_step = debug_step
+        self.debug_step = max(1, debug_step)
         self.coeff = np.random.uniform(low=0.0, high=1.0, size=coeff_shape)
+        self.norm = norm
+        if self.norm == "l1":
+            self.lambad_l1 = l1_lambda
+        elif self.norm == "l2":
+            self.lambad_l2 = l2_lambda
+        elif self.norm == "elastic":
+            self.lambad_l1 = l1_lambda
+            self.lambad_l2 = l2_lambda
+            self.el_param = el_param
+        elif self.norm == "":
+            pass
+        else:
+            raise ValueError(f"{self.norm} is unsupported")
+
         if self.debug_mode == "on":
             print(f"Number of Epochs is : {self.epochs}")
             print(f"Learning is {self.learning_rate}")
@@ -36,9 +54,24 @@ class GradientDescentBatch:
             beta_not = -2 * np.mean(y_hat - y_train)
             beta = (-2 * (np.dot((y_train - y_hat) ,x_train) )  ) / x_train.shape[0]
             
+            if self.norm == "":
+                pass
+            elif self.norm == "l1":
+                l1_penalty = self.lambad_l1 * np.sign(self.coeff)
+                beta = beta + l1_penalty
+            elif self.norm == "l2":
+                l2_penalty = self.lambad_l2 * 2 * self.coeff
+                beta = beta + l2_penalty
+            elif self.norm == "elastic":
+                l1_penalty = self.lambad_l1 * np.sign(self.coeff)
+                l2_penalty = self.lambad_l2 * 2 * self.coeff
+                penalty = (l1_penalty + l2_penalty) * self.el_param
+                beta = beta + penalty
+                
             # parameter update
             self.coeff = self.coeff - self.learning_rate*beta
             self.intercept = self.intercept - self.learning_rate*beta_not
+            
             
             if ep % self.debug_step == 0 and self.debug_mode == "on":
                 print(f"Coefficient is {self.coeff}")
@@ -53,7 +86,7 @@ class GradientDescentBatch:
 if __name__ == "__main__":
     x_train = np.random.rand(10, 5)
     y_train = np.random.rand(10, 1)
-    gd = GradientDescentBatch(epochs=10 , coeff_shape=(5))
+    gd = GradientDescentBatch(epochs=10 , coeff_shape=(5) , norm="elastic")
     a, b = gd.forward(x_train, y_train)
     print(a)
     print(b)
