@@ -8,16 +8,15 @@ class GradientDescentBatch:
 
     def __init__(
         self,
-        coeff_shape: tuple,
         epochs=50,
         learning_rate=1e-3,
         tolerence=1e-6,
         debug_mode="off",
-        debug_step = 10,
-        norm = "" , 
-        l1_lambda = 0.2 , 
-        l2_lambda = 0.1 ,
-        el_param = 0.9
+        debug_step=10,
+        norm="",
+        l1_lambda=0.2,
+        l2_lambda=0.1,
+        el_param=0.9,
     ):
         self.epochs = epochs
         self.learning_rate = learning_rate
@@ -25,7 +24,7 @@ class GradientDescentBatch:
         self.debug_mode = debug_mode
         self.intercept = 0.0
         self.debug_step = max(1, debug_step)
-        self.coeff = np.random.uniform(low=0.0, high=1.0, size=coeff_shape)
+        self.coeff = None
         self.norm = norm
         if self.norm == "l1":
             self.lambad_l1 = l1_lambda
@@ -44,16 +43,17 @@ class GradientDescentBatch:
             print(f"Number of Epochs is : {self.epochs}")
             print(f"Learning is {self.learning_rate}")
 
-    def forward(self, x_train: np.ndarray, y_train: np.ndarray):
-        
+    def forward(self, x_train: np.ndarray, y_train: np.ndarray, model_function):
+        self.coeff = np.random.uniform(low=0.0, high=1.0, size=(x_train.shape[1],))
         for ep in range(self.epochs):
-            
-            y_hat = np.dot(x_train , self.coeff.T) + self.intercept
-            
+
+            # y_hat = np.dot(x_train , self.coeff.T) + self.intercept
+            y_hat = model_function(x_train, self.coeff, self.intercept)
+
             # gradient computation
             beta_not = -2 * np.mean(y_hat - y_train)
-            beta = (-2 * (np.dot((y_train - y_hat) ,x_train) )  ) / x_train.shape[0]
-            
+            beta = (-2 * (np.dot((y_train - y_hat), x_train))) / x_train.shape[0]
+
             if self.norm == "":
                 pass
             elif self.norm == "l1":
@@ -67,26 +67,25 @@ class GradientDescentBatch:
                 l2_penalty = self.lambad_l2 * 2 * self.coeff
                 penalty = (l1_penalty + l2_penalty) * self.el_param
                 beta = beta + penalty
-                
+
             # parameter update
-            self.coeff = self.coeff - self.learning_rate*beta
-            self.intercept = self.intercept - self.learning_rate*beta_not
-            
-            
+            self.coeff = self.coeff - self.learning_rate * beta
+            self.intercept = self.intercept - self.learning_rate * beta_not
+
             if ep % self.debug_step == 0 and self.debug_mode == "on":
                 print(f"Coefficient is {self.coeff}")
                 print(f"Intercept is {self.intercept}")
             if np.all(np.abs(beta) < self.tolerance) and abs(beta_not) < self.tolerance:
                 print(f"Converged at iteration {ep}")
                 break
-            
-        return [self.coeff , self.intercept]
+
+        return [self.coeff, self.intercept]
 
 
 if __name__ == "__main__":
     x_train = np.random.rand(10, 5)
     y_train = np.random.rand(10, 1)
-    gd = GradientDescentBatch(epochs=10 , coeff_shape=(5) , norm="elastic")
+    gd = GradientDescentBatch(epochs=10, norm="elastic")
     a, b = gd.forward(x_train, y_train)
     print(a)
     print(b)
