@@ -45,7 +45,12 @@ class GradientDescentBatch:
         self.loss_history = []
 
     def forward(
-        self, x_train: np.ndarray, y_train: np.ndarray, model_function, loss_function
+        self,
+        x_train: np.ndarray,
+        y_train: np.ndarray,
+        model_function,
+        loss_function,
+        derivative_function,
     ):
         self.coeff = np.random.uniform(low=0.0, high=1.0, size=(x_train.shape[1],))
         epoch_loss = 0
@@ -55,8 +60,11 @@ class GradientDescentBatch:
             y_hat = model_function(x_train, self.coeff, self.intercept)
 
             # gradient computation
-            beta_not = -2 * np.mean(y_hat - y_train)
-            beta = (-2 * (np.dot((y_train - y_hat), x_train))) / x_train.shape[0]
+            # beta_not = -2 * np.mean(y_hat - y_train)
+            # beta = (-2 * (np.dot((y_train - y_hat), x_train))) / x_train.shape[0]
+            beta_not, beta = derivative_function(
+                x_train, y_train, y_hat, self.coeff, self.intercept
+            )
 
             if self.norm == "":
                 pass

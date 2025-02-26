@@ -6,6 +6,7 @@ from typing import Literal
 from optimizer.gradient_descent_batch import GradientDescentBatch
 from optimizer.gradient_descent_stochastic import GradientDescentStochastic
 from utils.metrics import RegressionMetric
+from model import linear_derivative_function, linear_function
 
 
 class Linear:
@@ -27,6 +28,8 @@ class Linear:
         self.intercept = None
         self.loss_hist = None
         self.loss_func = RegressionMetric(method="mse")
+        self.model_function = linear_function
+        self.derivative_function = linear_derivative_function
         if optimizer == "batch":
             self.optimizer = GradientDescentBatch(
                 epochs,
@@ -54,15 +57,13 @@ class Linear:
         else:
             raise ValueError("Invalid optimizer choice. Use 'batch' or 'stochastic'.")
 
-    def model_function(x_val: np.ndarray, coeff: np.ndarray, intercept: float):
-        return np.dot(x_val, coeff.T) + intercept
-
     def fit(self, X, y):
         self.coeff, self.intercept, self.loss_hist = self.optimizer.forward(
             x_train=X,
             y_train=y,
             model_function=self.model_function,
             loss_function=self.loss_func.forward,
+            derivative_function=self.derivative_function,
         )
 
     def predict(self, X):

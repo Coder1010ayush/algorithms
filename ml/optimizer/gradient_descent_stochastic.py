@@ -45,7 +45,12 @@ class GradientDescentStochastic:
         self.loss_history = []
 
     def forward(
-        self, x_train: np.ndarray, y_train: np.ndarray, model_function, loss_function
+        self,
+        x_train: np.ndarray,
+        y_train: np.ndarray,
+        model_function,
+        loss_function,
+        derivative_function,
     ):
         n = x_train.shape[0]
         self.coeff = np.random.uniform(low=0.0, high=1.0, size=(x_train.shape[1],))
@@ -60,8 +65,15 @@ class GradientDescentStochastic:
                 y_hat = model_function(x_train[rand_idx], self.coeff, self.intercept)
 
                 # Compute gradients
-                beta_not = -2 * (y_train[rand_idx] - y_hat)
-                beta = -2 * (y_train[rand_idx].item() - y_hat) * x_train[rand_idx]
+                # beta_not = -2 * (y_train[rand_idx] - y_hat)
+                # beta = -2 * (y_train[rand_idx].item() - y_hat) * x_train[rand_idx]
+                beta_not, beta = derivative_function(
+                    x_train[rand_idx],
+                    y_train[rand_idx],
+                    y_hat,
+                    self.coeff,
+                    self.intercept,
+                )
 
                 # norm apply
                 if self.norm == "":
