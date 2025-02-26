@@ -39,7 +39,14 @@ class ClassificationMetric:
     def __init__(
         self,
         method: Literal[
-            "accuracy", "precision", "recall", "f1_score", "log_loss", "mcc"
+            "accuracy",
+            "precision",
+            "recall",
+            "f1_score",
+            "log_loss",
+            "mcc",
+            "cross_entropy",
+            "hinge_loss",
         ],
     ):
         self.method = method
@@ -75,6 +82,9 @@ class ClassificationMetric:
             numerator = tp * tn - fp * fn
             denominator = np.sqrt((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn) + 1e-8)
             return numerator / denominator
-
+        elif self.method == "hinge_loss":
+            return np.mean(np.maximum(0, 1 - y_true * y_hat))
+        elif self.method == "cross_entropy":
+            return -np.mean(y_true * np.log10(y_hat))
         else:
             raise ValueError(f"Unsupported method '{self.method}' provided")
