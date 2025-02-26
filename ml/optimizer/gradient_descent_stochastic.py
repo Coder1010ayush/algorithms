@@ -55,7 +55,6 @@ class GradientDescentStochastic:
         n = x_train.shape[0]
         self.coeff = np.random.uniform(low=0.0, high=1.0, size=(x_train.shape[1],))
         for ep in range(self.epochs):
-            # Shuffle indices before each epoch
             epoch_loss = 0
             indices = np.arange(n)
             np.random.shuffle(indices)
