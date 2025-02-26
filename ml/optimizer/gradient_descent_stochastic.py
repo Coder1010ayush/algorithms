@@ -117,7 +117,6 @@ class GradientDescentStochastic:
                 print(
                     f"Epoch {ep}: Loss = {avg_loss:.6f}, Coefficients Shape = {self.coeff.shape}, Intercept = {self.intercept}"
                 )
-
         return [self.coeff, self.intercept, self.loss_history]
 
 
