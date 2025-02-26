@@ -42,4 +42,39 @@ class ClassificationMetric:
             "accuracy", "precision", "recall", "f1_score", "log_loss", "mcc"
         ],
     ):
-        pass
+        self.method = method
+
+    def forward(self, y_true: np.ndarray, y_hat: np.ndarray):
+        if self.method == "accuracy":
+            return np.mean(y_true == y_hat)
+
+        elif self.method == "precision":
+            tp = np.sum((y_true == 1) & (y_hat == 1))
+            fp = np.sum((y_true == 0) & (y_hat == 1))
+            return tp / (tp + fp + 1e-8)
+
+        elif self.method == "recall":
+            tp = np.sum((y_true == 1) & (y_hat == 1))
+            fn = np.sum((y_true == 1) & (y_hat == 0))
+            return tp / (tp + fn + 1e-8)
+
+        elif self.method == "f1_score":
+            precision = ClassificationMetric("precision").forward(y_true, y_hat)
+            recall = ClassificationMetric("recall").forward(y_true, y_hat)
+            return 2 * (precision * recall) / (precision + recall + 1e-8)
+
+        elif self.method == "log_loss":
+            y_hat = np.clip(y_hat, 1e-8, 1 - 1e-8)
+            return -np.mean(y_true * np.log(y_hat) + (1 - y_true) * np.log(1 - y_hat))
+
+        elif self.method == "mcc":
+            tp = np.sum((y_true == 1) & (y_hat == 1))
+            tn = np.sum((y_true == 0) & (y_hat == 0))
+            fp = np.sum((y_true == 0) & (y_hat == 1))
+            fn = np.sum((y_true == 1) & (y_hat == 0))
+            numerator = tp * tn - fp * fn
+            denominator = np.sqrt((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn) + 1e-8)
+            return numerator / denominator
+
+        else:
+            raise ValueError(f"Unsupported method '{self.method}' provided")
