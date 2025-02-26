@@ -3,28 +3,11 @@
 
 from abc import ABC, abstractmethod
 import numpy as np
+from models.basemodel import BaseModel
 from utils.activation import ActivationFunction
 from utils.metrics import RegressionMetric, ClassificationMetric
 from utils.distant_matric import Distant
 from optimizer.gradient_optimiser import GradientOptimizer
-
-
-class BaseModel(ABC):
-    @abstractmethod
-    def forward(self, X):
-        pass
-
-    @abstractmethod
-    def compute_loss(self, y, y_pred):
-        pass
-
-    @abstractmethod
-    def compute_gradient(self, X, y, y_pred):
-        pass
-
-    @abstractmethod
-    def update_parameters(self, grad_w, grad_b, lr):
-        pass
 
 
 class LinearRegression(BaseModel):
