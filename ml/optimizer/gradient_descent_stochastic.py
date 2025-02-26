@@ -4,7 +4,6 @@ import numpy as np
 
 
 class GradientDescentStochastic:
-
     def __init__(
         self,
         epochs=50,
@@ -17,7 +16,7 @@ class GradientDescentStochastic:
         l2_lambda=0.1,
         el_param=0.9,
     ):
-        # norm could be l1 , l2 and elastic , ""
+        # norm could be l1 , l2 and elastic , "
         self.epochs = epochs
         self.learning_rate = learning_rate
         self.tolerance = tolerance
@@ -51,6 +50,7 @@ class GradientDescentStochastic:
         model_function,
         loss_function,
         derivative_function,
+        kernal_func=None,
     ):
         n = x_train.shape[0]
         self.coeff = np.random.uniform(low=0.0, high=1.0, size=(x_train.shape[1],))

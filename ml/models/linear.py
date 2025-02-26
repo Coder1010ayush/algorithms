@@ -6,7 +6,7 @@ from typing import Literal
 from optimizer.gradient_descent_batch import GradientDescentBatch
 from optimizer.gradient_descent_stochastic import GradientDescentStochastic
 from utils.metrics import RegressionMetric
-from model import linear_derivative_function, linear_function
+from ml.models.linear_utils import linear_derivative_function, linear_function
 
 
 class Linear:
