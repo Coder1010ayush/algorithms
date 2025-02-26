@@ -5,6 +5,7 @@ import numpy as np
 from typing import Literal
 from optimizer.gradient_descent_batch import GradientDescentBatch
 from optimizer.gradient_descent_stochastic import GradientDescentStochastic
+from utils.metrics import RegressionMetric
 
 
 class Linear:
@@ -24,6 +25,8 @@ class Linear:
     ):
         self.coeff = None
         self.intercept = None
+        self.loss_hist = None
+        self.loss_func = RegressionMetric(method="mse")
         if optimizer == "batch":
             self.optimizer = GradientDescentBatch(
                 epochs,
@@ -55,9 +58,16 @@ class Linear:
         return np.dot(x_val, coeff.T) + intercept
 
     def fit(self, X, y):
-        self.coeff, self.intercept = self.optimizer.forward(
-            x_train=X, y_train=y, model_function=self.model_function
+        self.coeff, self.intercept, self.loss_hist = self.optimizer.forward(
+            x_train=X,
+            y_train=y,
+            model_function=self.model_function,
+            loss_function=self.loss_func.forward,
         )
 
     def predict(self, X):
         return self.model_function(X, self.coeff, self.intercept)
+
+    def show_loss(self):
+        for idx, itm in enumerate(self.loss_hist):
+            print(f"Epoch {idx} loss is : {itm}")

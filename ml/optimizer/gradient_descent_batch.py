@@ -42,9 +42,13 @@ class GradientDescentBatch:
         if self.debug_mode == "on":
             print(f"Number of Epochs is : {self.epochs}")
             print(f"Learning is {self.learning_rate}")
+        self.loss_history = []
 
-    def forward(self, x_train: np.ndarray, y_train: np.ndarray, model_function):
+    def forward(
+        self, x_train: np.ndarray, y_train: np.ndarray, model_function, loss_function
+    ):
         self.coeff = np.random.uniform(low=0.0, high=1.0, size=(x_train.shape[1],))
+        epoch_loss = 0
         for ep in range(self.epochs):
 
             # y_hat = np.dot(x_train , self.coeff.T) + self.intercept
@@ -72,14 +76,21 @@ class GradientDescentBatch:
             self.coeff = self.coeff - self.learning_rate * beta
             self.intercept = self.intercept - self.learning_rate * beta_not
 
+            # loss computation
+            loss = loss_function(y_train, y_hat)
+            epoch_loss += loss
+            self.loss_history.append(epoch_loss)
+
             if ep % self.debug_step == 0 and self.debug_mode == "on":
-                print(f"Coefficient is {self.coeff}")
-                print(f"Intercept is {self.intercept}")
+                print(
+                    f"Epoch {ep}: Loss = {loss:.6f}, Coefficients Shape = {self.coeff.shape}, Intercept = {self.intercept}"
+                )
+
             if np.all(np.abs(beta) < self.tolerance) and abs(beta_not) < self.tolerance:
                 print(f"Converged at iteration {ep}")
                 break
 
-        return [self.coeff, self.intercept]
+        return [self.coeff, self.intercept, self.loss_history]
 
 
 if __name__ == "__main__":

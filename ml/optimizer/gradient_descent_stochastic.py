@@ -42,12 +42,16 @@ class GradientDescentStochastic:
         if self.debug_mode == "on":
             print(f"Number of Epochs: {self.epochs}")
             print(f"Learning Rate: {self.learning_rate}")
+        self.loss_history = []
 
-    def forward(self, x_train: np.ndarray, y_train: np.ndarray, model_function):
+    def forward(
+        self, x_train: np.ndarray, y_train: np.ndarray, model_function, loss_function
+    ):
         n = x_train.shape[0]
         self.coeff = np.random.uniform(low=0.0, high=1.0, size=(x_train.shape[1],))
         for ep in range(self.epochs):
             # Shuffle indices before each epoch
+            epoch_loss = 0
             indices = np.arange(n)
             np.random.shuffle(indices)
 
@@ -75,6 +79,9 @@ class GradientDescentStochastic:
                     elastic_penalty = (l1_penalty + l2_penalty) * self.el_param
                     beta = beta + elastic_penalty
 
+                # loss computation
+                epoch_loss += loss_function(y_train[rand_idx], y_hat)
+
                 # Update parameters
                 self.coeff -= self.learning_rate * beta
                 self.intercept -= self.learning_rate * beta_not
@@ -87,6 +94,9 @@ class GradientDescentStochastic:
                     print(f"Converged at iteration {ep}")
                     return self.coeff, self.intercept
 
+            avg_loss = epoch_loss / n
+            self.loss_history.append(avg_loss)
+
             # Debugging output
             if (
                 self.debug_mode == "on"
@@ -94,10 +104,10 @@ class GradientDescentStochastic:
                 and ep % self.debug_step == 0
             ):
                 print(
-                    f"Epoch {ep}: Coefficients = {self.coeff}, Intercept = {self.intercept}"
+                    f"Epoch {ep}: Loss = {avg_loss:.6f}, Coefficients Shape = {self.coeff.shape}, Intercept = {self.intercept}"
                 )
 
-        return [self.coeff, self.intercept]
+        return [self.coeff, self.intercept, self.loss_history]
 
 
 if __name__ == "__main__":
