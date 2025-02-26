@@ -77,5 +77,7 @@ class Normalization:
             x_val = x_val.reshape(-1, 1)
         elif self.methode == "quantile_transform":
             return self.quantile_transform(x_val=x_val)
+        else:
+            raise ValueError(f"Unsupported {self.methode} is provided.")
 
         return x_val
