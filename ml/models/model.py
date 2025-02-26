@@ -7,7 +7,8 @@ from models.basemodel import BaseModel
 from utils.activation import ActivationFunction
 from utils.metrics import RegressionMetric, ClassificationMetric
 from utils.distant_matric import Distant
-from optimizer.gradient_optimiser import GradientOptimizer
+
+# from optimizer.gradient_optimiser import GradientsOptimizer
 
 
 class LinearRegression(BaseModel):
