@@ -21,7 +21,7 @@ class LinearRegression(BaseModel):
         self.weights = np.random.normal(loc=0, scale=1, size=coeff_shape)
         self.bias = 0
 
-    def forward(self, X):
+    def forward(self, X, y):
         if self.weights is None and self.bias is None:
             self.init_w_b(coeff_shape=(X.shape[1], 1))
         return np.dot(X, self.weights) + self.bias
@@ -53,7 +53,7 @@ class LogisticModel(BaseModel):
         self.weights = np.random.normal(loc=0, scale=1, size=coeff_shape)
         self.bias = 0.0
 
-    def forward(self, X):
+    def forward(self, X, y):
         if self.weights is None and self.bias is None:
             self.init_w_b(coeff_shape=(X.shape[1], 1))
         return self.act.forward(x=np.dot(X, self.weights) + self.bias)
@@ -102,7 +102,7 @@ class SVMRegression(BaseModel):
         else:
             raise ValueError("Unsupported kernel")
 
-    def forward(self, X):
+    def forward(self, X, y):
         if self.weights is None and self.bias is None:
             self.init_w_b(coeff_shape=(X.shape[1], 1))
         return np.dot(X, self.weights) + self.bias
@@ -148,7 +148,7 @@ class SVMClassifier(BaseModel):
         else:
             raise ValueError("Unsupported kernel")
 
-    def forward(self, X):
+    def forward(self, X, y):
         if self.weights is None and self.bias is None:
             self.init_w_b(coeff_shape=(X.shape[1], 1))
         return np.dot(X, self.weights) + self.bias

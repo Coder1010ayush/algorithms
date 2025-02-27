@@ -25,7 +25,7 @@ class KMeansClusterClassification(BaseModel):
         self.tolerence = tolerence
         self.metric = metric
 
-    def forward(self, x: np.ndarray):
+    def forward(self, x: np.ndarray, y):
         centroid_initializer = InitializeCentroid(
             X=x, k=self.degree, init_type=self.init_type
         )
@@ -74,7 +74,7 @@ class KMedoids:
         self.medoids = None
         self.labels = None
 
-    def forward(self, X: np.ndarray):
+    def forward(self, X: np.ndarray, y):
         n_samples = X.shape[0]
         medoid_indices = np.random.choice(n_samples, self.degree, replace=False)
         self.medoids = X[medoid_indices]
@@ -130,7 +130,7 @@ class AgglomerativeClustering(BaseModel):
         self.cluster_centers_ = None
         self.X_train = None
 
-    def forward(self, X):
+    def forward(self, X, y):
         self.X_train = X
         n_samples = X.shape[0]
         clusters = {i: [i] for i in range(n_samples)}
