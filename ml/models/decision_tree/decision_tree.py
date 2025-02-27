@@ -320,7 +320,7 @@ class DecisionTreeRegression(BaseModel):
         return np.array([self.predict_sample(self.tree, sample) for sample in x])
 
     def compute_loss(self, y, y_pred):
-        return np.mean((y - y_pred) ** 2)
+        pass
 
     def compute_gradient(self, X, y, y_pred):
         pass
