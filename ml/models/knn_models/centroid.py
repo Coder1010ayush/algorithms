@@ -34,7 +34,11 @@ class Centroid:
 
 class InitializeCentroid:
     def __init__(self, X: np.ndarray, k: int, init_type: str = "random"):
-        assert init_type in {"random", "kmeans++"}, "Unsupported initialization type"
+        assert init_type in {
+            "random",
+            "kmeans++",
+            "uniform",
+        }, "Unsupported initialization type"
         self.k = k
         self.init_type = init_type
         self.centroids = self._initialize_centroids(X)
