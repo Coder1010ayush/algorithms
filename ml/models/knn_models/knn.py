@@ -115,6 +115,7 @@ class KMedoids:
         pass
 
 
+# this is not my complete work for aglomerative , i have taken help from my semester prof.
 class AgglomerativeClustering(BaseModel):
     def __init__(
         self,
@@ -205,3 +206,8 @@ class AgglomerativeClustering(BaseModel):
 
     def update_parameters(self, grad_w, grad_b, lr):
         pass
+
+    # def predict(self, X_test):
+    #     distances = cdist(X_test, self.X_train, metric=self.metric)
+    #     nearest_neighbors = np.argmin(distances, axis=1)
+    #     return self.labels_[nearest_neighbors]
