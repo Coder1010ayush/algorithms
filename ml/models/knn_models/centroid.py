@@ -30,3 +30,25 @@ class Centroid:
 
         else:
             raise ValueError(f"Unknown centroid type {self.type_centroid}")
+
+
+class InitializeCentroid:
+    def __init__(self, X: np.ndarray, k: int, init_type: str = "random"):
+        assert init_type in {"random", "kmeans++"}, "Unsupported initialization type"
+        self.k = k
+        self.init_type = init_type
+        self.centroids = self._initialize_centroids(X)
+
+    def _initialize_centroids(self, X: np.ndarray):
+        if self.init_type == "random":
+            return X[np.random.choice(X.shape[0], self.k, replace=False)]
+        elif self.init_type == "kmeans++":
+            centroids = [X[np.random.randint(0, X.shape[0])]]
+            for _ in range(1, self.k):
+                distances = np.min(cdist(X, np.array(centroids)), axis=1)
+                probs = distances / np.sum(distances)
+                centroid_idx = np.random.choice(X.shape[0], p=probs)
+                centroids.append(X[centroid_idx])
+            return np.array(centroids)
+        elif self.init_type == "uniform":
+            return np.linspace(np.min(X, axis=0), np.max(X, axis=0), self.k)
