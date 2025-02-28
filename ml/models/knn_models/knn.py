@@ -56,15 +56,6 @@ class KMeansClusterClassification(BaseModel):
         distances = cdist(x, self.centroids, metric=self.metric)
         return np.argmin(distances, axis=1)
 
-    def compute_loss(self, y, y_pred):
-        pass
-
-    def compute_gradient(self, X, y, y_pred):
-        pass
-
-    def update_parameters(self, grad_w, grad_b, lr):
-        pass
-
 
 class KMedoids:
     def __init__(self, degree: int, max_iters: int = None, metric: str = "euclidean"):
@@ -104,15 +95,6 @@ class KMedoids:
     def predict(self, X: np.ndarray):
         distances = cdist(X, self.medoids, metric=self.metric)
         return np.argmin(distances, axis=1)
-
-    def compute_loss(self, y, y_pred):
-        pass
-
-    def compute_gradient(self, X, y, y_pred):
-        pass
-
-    def update_parameters(self, grad_w, grad_b, lr):
-        pass
 
 
 # this is not my complete work for aglomerative , i have taken help from my semester prof.
@@ -197,15 +179,6 @@ class AgglomerativeClustering(BaseModel):
                 )
         distance_matrix[j, :] = np.inf
         distance_matrix[:, j] = np.inf
-
-    def compute_loss(self, y, y_pred):
-        pass
-
-    def compute_gradient(self, X, y, y_pred):
-        pass
-
-    def update_parameters(self, grad_w, grad_b, lr):
-        pass
 
     # def predict(self, X_test):
     #     distances = cdist(X_test, self.X_train, metric=self.metric)

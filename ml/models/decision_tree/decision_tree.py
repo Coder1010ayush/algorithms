@@ -119,15 +119,6 @@ class DecisionTreeID3(BaseModel):
         # )
         return op1
 
-    def compute_loss(self, y, y_pred):
-        pass
-
-    def compute_gradient(self, X, y, y_pred):
-        pass
-
-    def update_parameters(self, grad_w, grad_b, lr):
-        pass
-
 
 class DecisionTreeCART(BaseModel):
     def __init__(self, min_sample_split=5, max_depth=10, task="classification"):
@@ -235,15 +226,6 @@ class DecisionTreeCART(BaseModel):
     def predict(self, x):
         return np.array([self.predict_sample(self.tree, sample) for sample in x])
 
-    def compute_loss(self, y, y_pred):
-        pass
-
-    def compute_gradient(self, X, y, y_pred):
-        pass
-
-    def update_parameters(self, grad_w, grad_b, lr):
-        pass
-
 
 class DecisionTreeRegression(BaseModel):
     def __init__(self, min_sample_split: int = 5, max_depth: int = 10):
@@ -318,12 +300,3 @@ class DecisionTreeRegression(BaseModel):
 
     def predict(self, x):
         return np.array([self.predict_sample(self.tree, sample) for sample in x])
-
-    def compute_loss(self, y, y_pred):
-        pass
-
-    def compute_gradient(self, X, y, y_pred):
-        pass
-
-    def update_parameters(self, grad_w, grad_b, lr):
-        pass
