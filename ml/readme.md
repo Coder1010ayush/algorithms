@@ -41,7 +41,7 @@ This project is focused on implementing fundamental machine learning algorithms 
 
 ---
 
-## Upcoming Implementations
+## Implemented Algorithm
 ### 1. Logistic Regression
 - Implement logistic regression for binary classification
 - Support gradient-based optimization with regularization
@@ -73,7 +73,3 @@ This project is focused on implementing fundamental machine learning algorithms 
 If you’d like to contribute to this project, feel free to fork the repository and submit a pull request with improvements or new implementations.
 
 ---
-
-## License
-This project is licensed under the MIT License - see the LICENSE file for details.
-
