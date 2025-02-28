@@ -4,9 +4,10 @@
 import numpy as np
 from multiprocessing import Pool, cpu_count
 from collections import defaultdict
+from models.basemodel import BaseModel
 
 
-class NaiveBayes:
+class NaiveBayes(BaseModel):
     def __init__(self, model_type="gaussian", smoothing=1.0, parallel=False):
         self.model_type = model_type.lower()
         self.smoothing = smoothing
@@ -15,7 +16,7 @@ class NaiveBayes:
         self.priors = None
         self.likelihoods = None
 
-    def fit(self, X, y):
+    def forward(self, X, y):
         self.classes, class_counts = np.unique(y, return_counts=True)
         self.priors = {
             cls: np.log(class_counts[i] / len(y)) for i, cls in enumerate(self.classes)
