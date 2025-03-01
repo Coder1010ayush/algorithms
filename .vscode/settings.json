@@ -13,4 +13,26 @@
     "editor.autoSurround": "languageDefined",
     "window.zoomLevel": -0.8,
     "git.ignoreLimitWarning": true,
+    "workbench.colorCustomizations": {
+        "editor.background": "#01040e",
+        "banner.background": "#01040e",
+        "dropdown.background": "#01040e",
+        "terminal.background": "#01040e",
+        "editorActionList.background": "#01040e",
+        "editorWidget.background": "#01040e",
+        "welcomePage.background": "#01040e",
+        "walkThrough.embeddedEditorBackground": "#01040e",
+        "editorOverviewRuler.background": "#01040e",
+        "editorStickyScroll.background": "#01040e",
+        "peekViewEditor.background": "#01040e",
+        "selection.background": "#01040e",
+        "editorStickyScrollHover.background": "#01040e",
+        "list.dropBackground": "#01040e",
+        "menu.background": "#01040e",
+        "panel.background": "#01040e",
+        "statusBar.background": "#01040e",
+        "sideBar.background": "#01040e",
+        "sideBarSectionHeader.background": "#01040e",
+        "editorGutter.background": "#01040e"
+    }
 }
