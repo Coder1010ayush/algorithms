@@ -2,7 +2,7 @@
 # this file contains all kinds of clustering algorithm such as k-means (all varients ) and density - based clustering etc
 import math
 import numpy as np
-from models.knn_models.centroid import Centroid, InitializeCentroid
+from models.kmeans_model.centroid import Centroid, InitializeCentroid
 from models.basemodel import BaseModel
 from scipy.spatial.distance import cdist
 from typing import Literal
@@ -25,7 +25,7 @@ class KMeansClusterClassification(BaseModel):
         self.tolerence = tolerence
         self.metric = metric
 
-    def forward(self, x: np.ndarray, y):
+    def forward(self, x: np.ndarray, y = None):
         centroid_initializer = InitializeCentroid(
             X=x, k=self.degree, init_type=self.init_type
         )
@@ -65,7 +65,7 @@ class KMedoids:
         self.medoids = None
         self.labels = None
 
-    def forward(self, X: np.ndarray, y):
+    def forward(self, X: np.ndarray, y = None):
         n_samples = X.shape[0]
         medoid_indices = np.random.choice(n_samples, self.degree, replace=False)
         self.medoids = X[medoid_indices]
@@ -112,7 +112,7 @@ class AgglomerativeClustering(BaseModel):
         self.cluster_centers_ = None
         self.X_train = None
 
-    def forward(self, X, y):
+    def forward(self, X, y = None):
         self.X_train = X
         n_samples = X.shape[0]
         clusters = {i: [i] for i in range(n_samples)}
