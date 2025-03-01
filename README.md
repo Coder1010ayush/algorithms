@@ -303,6 +303,3 @@ VAE (Variational Autoencoder)
 Deep Belief Networks (DBN)
 
 Attention Mechanisms and Self-Attention Models
-
-# FUN WITH IMPLAMENTING ALL THESE ALGORITHM , FANTASTIC WEEKEND  
-
