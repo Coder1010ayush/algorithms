@@ -1,124 +1,111 @@
-**Gaussian Mixture Model (GMM) & Hidden Markov Model (HMM)**
-============================================================
+# Gaussian Mixture Model (GMM)
 
-**1️⃣ Gaussian Mixture Model (GMM)**
-------------------------------------
+## Introduction
+Gaussian Mixture Model (GMM) is a probabilistic clustering algorithm that assumes data is generated from a mixture of multiple Gaussian distributions with unknown parameters. It is widely used for clustering tasks and density estimation.
 
-### **Overview**
+This document describes the implementation of two variants of GMM:
+1. **GaussianMixtureModelFast**: An optimized version with parallel computation.
+2. **GaussianMixtureModel**: A simpler version without parallelization.
 
-A **Gaussian Mixture Model (GMM)** is a **probabilistic model** used for
-**clustering** and **density estimation**. It assumes that the data is
-generated from a mixture of multiple **Gaussian distributions**.
+Both implementations use the Expectation-Maximization (EM) algorithm to iteratively estimate the parameters of the Gaussian distributions.
 
-### **Mathematical Formulation**
+---
 
-A GMM is defined as:
+## 1. GaussianMixtureModelFast
 
-\[ P(X) = `\sum`{=tex}\_{i=1}\^{K} `\pi`{=tex}\_i `\mathcal{N}`{=tex}(X
-\| `\mu`{=tex}\_i, `\Sigma`{=tex}\_i) \]
+### Class Definition
+```python
+class GaussianMixtureModelFast(BaseModel):
+```
+This is an optimized version of GMM that supports parallel computation for likelihood estimation.
 
-where: - ( K ) = number of Gaussian components (clusters) - (
-`\pi`{=tex}*i ) = **mixing coefficient** (probability of selecting
-component ( i )), with ( `\sum`{=tex}*{i=1}\^{K} `\pi`{=tex}\_i = 1 ) -
-( `\mathcal{N}`{=tex}(X \| `\mu`{=tex}\_i, `\Sigma`{=tex}\_i) ) =
-**multivariate normal distribution** with: - **Mean** ( `\mu`{=tex}\_i )
-- **Covariance matrix** ( `\Sigma`{=tex}\_i )
+### Parameters
+- `num_cluster (int)`: Number of Gaussian components (clusters).
+- `max_iteration (int)`: Maximum number of iterations for EM.
+- `tol (float)`: Convergence threshold for log-likelihood.
+- `use_parallel (bool)`: Enables parallel computation for likelihood estimation.
+- `init_method (str)`: Initialization method, can be:
+  - `"random"`: Selects random points as initial means.
+  - `"kmeans"`: Uses K-Means for better initialization.
+  - `"default"`: Uses random sampling for initialization.
 
-### **Expectation-Maximization (EM) Algorithm**
+### Methods
+#### `__initialize_parameters(x: np.ndarray)`
+Initializes the mean (`mu`), covariance (`sigma`), and mixing coefficients (`theta`).
+- Uses K-Means or random initialization.
+- Covariance matrices are initialized with a small regularization term to prevent singularity.
 
-GMM is trained using the **EM algorithm**, which iteratively updates
-parameters until convergence.
+#### `__compute_likelihood(x: np.ndarray, i: int)`
+Computes the probability density function (PDF) for Gaussian component `i`.
+- Uses `scipy.stats.multivariate_normal`.
+- Supports parallel execution for speed optimization.
 
-#### **Step 1: Initialization**
+#### `predict_probability(x: np.ndarray)`
+Computes the responsibility matrix (E-step).
+- Uses parallelization if `use_parallel=True`.
+- Computes weighted likelihoods and normalizes probabilities.
 
--   Initialize means ( `\mu`{=tex}\_i ), covariances ( `\Sigma`{=tex}\_i
-    ), and mixing coefficients ( `\pi`{=tex}\_i ).
--   Scikit-learn supports different initialization methods: `"kmeans"`,
-    `"random"`, `"random_from_data"`.
+#### `__update_parameters(x: np.ndarray)`
+Updates the Gaussian parameters (M-step).
+- Updates mean (`mu`), covariance (`sigma`), and mixing coefficients (`theta`).
 
-#### **Step 2: Expectation Step (E-Step)**
+#### `forward(x: np.ndarray, y: np.ndarray = None)`
+Trains the GMM using the EM algorithm.
+- Iteratively performs E-step and M-step until convergence or maximum iterations.
+- Stops when the log-likelihood change is below `tol`.
 
--   Compute the probability (responsibilities) of each data point
-    belonging to each Gaussian:
+#### `predict(x: np.ndarray)`
+Assigns each data point to the most probable Gaussian cluster based on the highest responsibility value.
 
-\[ r\_{i,j} =
-`\frac{\pi_i \mathcal{N}(x_j | \mu_i, \Sigma_i)}{\sum_{k=1}^{K} \pi_k \mathcal{N}(x_j | \mu_k, \Sigma_k)}`{=tex}
-\]
+---
 
-#### **Step 3: Maximization Step (M-Step)**
+## 2. GaussianMixtureModel
 
--   Update parameters using weighted averages:
+### Class Definition
+```python
+class GaussianMixtureModel(BaseModel):
+```
+A simpler version of GMM without parallelization.
 
-\[ `\mu`{=tex}\_i\^{`\text{new}`{=tex}} =
-`\frac{\sum_{j=1}^{N} r_{i,j} x_j}{\sum_{j=1}^{N} r_{i,j}}`{=tex} \]
+### Parameters
+- `num_cluster (int)`: Number of Gaussian components.
+- `max_iteration (int)`: Maximum number of EM iterations.
+- `tolerance (float)`: Convergence threshold.
 
-\[ `\Sigma`{=tex}\_i\^{`\text{new}`{=tex}} =
-`\frac{\sum_{j=1}^{N} r_{i,j} (x_j - \mu_i)(x_j - \mu_i)^T}{\sum_{j=1}^{N} r_{i,j}}`{=tex}
-\]
+### Methods
+#### `__initialize_weights(x: np.ndarray)`
+Initializes the parameters:
+- Mean (`mu`) using random selection.
+- Covariance (`sigma`) using the empirical covariance matrix.
+- Mixing coefficients (`theta`).
 
-\[ `\pi`{=tex}\_i\^{`\text{new}`{=tex}} =
-`\frac{\sum_{j=1}^{N} r_{i,j}}{N}`{=tex} \]
+#### `predict_probability(x: np.ndarray)`
+Computes the posterior probability (responsibilities) of each data point belonging to each Gaussian.
 
-#### **Step 4: Check for Convergence**
+#### `estimation(x: np.ndarray)`
+Performs the E-step:
+- Computes the new responsibilities based on the current parameters.
 
--   Stop when log-likelihood improvement is below a threshold.
+#### `maximization(x: np.ndarray)`
+Performs the M-step:
+- Updates the mean (`mu`), covariance (`sigma`), and mixing coefficients (`theta`).
 
-------------------------------------------------------------------------
+#### `forward(x: np.ndarray, y: np.ndarray)`
+Trains the GMM using EM until convergence.
+- Alternates between E-step and M-step for `max_iterations`.
 
-**2️⃣ Hidden Markov Model (HMM)**
----------------------------------
+#### `predict(x: np.ndarray)`
+Predicts the cluster assignment for each data point.
 
-### **Overview**
+---
 
-A **Hidden Markov Model (HMM)** is a **probabilistic model** used to
-represent **sequential data**. It assumes: 1. There is an **underlying
-Markov process** with **hidden (latent) states**. 2. Each state
-generates an **observable output** based on an **emission probability
-distribution**.
+## Key Differences Between Variants
+| Feature | GaussianMixtureModelFast | GaussianMixtureModel |
+|---------|--------------------------|----------------------|
+| Parallel Computation | ✅ (Joblib) | ❌ |
+| Initialization Options | Random, K-Means, Default | Random |
+| Convergence Check | Log-likelihood | Fixed iterations |
+| Speed | Faster (Parallelization) | Slower |
 
-### **Mathematical Components**
+---
 
-An HMM consists of: 1. **States**: ( S = { S\_1, S\_2, ..., S\_N } )
-(hidden) 2. **Observations**: ( O = { o\_1, o\_2, ..., o\_T } )
-(observable) 3. **Transition Probabilities**: ( A = P(S\_t \| S\_{t-1})
-) 4. **Emission Probabilities**: ( B = P(O\_t \| S\_t) ) 5. **Initial
-Probabilities**: ( `\pi `{=tex}= P(S\_1) )
-
-### **Mathematical Representation**
-
--   **State Transition Matrix** ( A ):
-
-\[ A\_{ij} = P(S\_t = S\_j \| S\_{t-1} = S\_i) \]
-
--   **Emission Matrix** ( B ):
-
-\[ B\_{ij} = P(O\_t \| S\_t) \]
-
--   **Initial State Distribution** ( `\pi `{=tex}):
-
-\[ `\pi`{=tex}\_i = P(S\_1 = S\_i) \]
-
-### **Key HMM Algorithms**
-
-HMMs rely on three main algorithms:
-
-#### **1️⃣ Forward Algorithm (Probability Estimation)**
-
-Used to compute the probability of an observation sequence:
-
-\[ `\alpha`{=tex}\_t(j) = P(O\_1, O\_2, ..., O\_t, S\_t = S\_j) \]
-
-#### **2️⃣ Viterbi Algorithm (Most Likely Sequence)**
-
-Finds the most probable sequence of hidden states:
-
-\[ `\delta`{=tex}*t(j) = `\max`{=tex}*{S\_{t-1}} P(O\_1, ..., O\_t, S\_t
-= S\_j) \]
-
-#### **3️⃣ Baum-Welch Algorithm (Parameter Learning)**
-
-An EM-based algorithm to **train HMM parameters** from data.
-
-------------------------------------------------------------------------
-
-This readme.md is generated by gpt so be carefull ( i do not even cross check with my code base )
