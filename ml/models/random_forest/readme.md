@@ -1,48 +1,87 @@
-# Random Forest Implementation Details
+# Random Forest Implementation
 
-## 1. Decision Tree Variants Used
-I implemented Random Forest using three different decision tree variants:
-- **DecisionTreeID3**: Uses information gain for splitting (entropy-based criterion).
-- **DecisionTreeCART**: Supports both classification (Gini index) and regression (MSE criterion).
-- **DecisionTreeRegression**: Specifically optimized for regression tasks using MSE.
+## Overview
+This document describes the implementation of a **Random Forest** algorithm that supports both **classification** and **regression** tasks. The implementation is designed for efficiency and includes options for **parallel processing** and **out-of-bag (OOB) score computation**.
 
-## 2. Bootstrap Sampling
-- Each tree in the forest is trained on a random subset (with replacement) of the training data.
-- The size of the subset is equal to the original training set but sampled with replacement.
+## Features
+- Supports **classification** and **regression** tasks.
+- Implements **bootstrapping** for training.
+- Supports **parallel training** using multiprocessing.
+- Allows computation of **out-of-bag (OOB) score**.
+- Uses **Decision Trees** (CART or ID3 for classification, Regression Tree for regression).
 
-## 3. Feature Selection per Split
-- Instead of using all features, a random subset of features is selected at each split.
-- Classification: Defaults to `sqrt(n_features)`.
-- Regression: Defaults to `n_features / 3`.
-- Users can dynamically adjust this through hyperparameters, allowing for cross-validation optimization.
+## Class Definition
+```python
+class RandomForest(BaseModel):
+```
+### Parameters:
+- `n_trees` *(int, default=50)*: Number of trees in the forest.
+- `min_sample_split` *(int, default=5)*: Minimum samples required to split a node.
+- `max_depth` *(int, default=10)*: Maximum depth of each decision tree.
+- `max_features` *(int, default=None)*: Maximum number of features to consider for the best split.
+- `task` *(str, default='classification')*: Type of task ('classification' or 'regression').
+- `oob_score` *(bool, default=False)*: Whether to compute Out-of-Bag (OOB) score.
+- `parallel` *(bool, default=True)*: Whether to use parallel processing.
+- `trees` *(list)*: Stores trained decision trees.
+- `oob_predictions` *(dict)*: Stores OOB predictions for score calculation.
 
-## 4. Out-of-Bag (OOB) Error Estimation
-- For each sample, track trees that did not include it in their training data (OOB trees).
-- Compute predictions using only OOB trees and compare them to actual labels to estimate the model's generalization error.
+## Methods
 
-## 5. Weighted Voting for Classification
-- Instead of majority voting, trees can contribute votes weighted by confidence scores.
-- Uses class probabilities from individual trees to refine the ensemble decision.
+### `_bootstrap_sample(X, y)`
+Creates a bootstrap sample from the dataset for training individual trees.
 
-## 6. Regularization and Pruning
-- Added pruning mechanisms to **DecisionTreeID3** and **DecisionTreeCART**:
-  - **Minimum Gain Threshold**: Prevents splits that do not provide sufficient information gain.
-  - **Maximum Depth**: Limits tree depth to prevent overfitting.
-  - **Minimum Sample Split**: Ensures a minimum number of samples per split.
+#### Returns:
+- `X_sample` *(array)*: Sampled training features.
+- `y_sample` *(array)*: Sampled training labels.
+- `oob_indices` *(list)*: Out-of-Bag indices (not included in the sample).
 
-## 7. Parallelization (Optional)
-- Introduced parallel training using `joblib`.
-- Users can toggle parallel execution for training trees to speed up computation.
+---
 
-## 8. Random Forest Hyperparameters
-- **n_trees**: Number of trees in the ensemble.
-- **max_features**: Number of features considered for each split.
-- **max_depth**: Maximum depth for individual trees.
-- **min_samples_split**: Minimum number of samples required for a split.
-- **bootstrap**: Whether to use bootstrap sampling.
-- **oob_score**: Whether to compute OOB error.
-- **n_jobs**: Number of parallel jobs (optional parallel execution).
+### `_train_tree(args)`
+Trains a single decision tree on the bootstrap sample.
 
-## 9. Prediction Process
-- **Classification**: Aggregates tree predictions using majority voting or weighted voting.
-- **Regression**: Averages predictions from all trees to get the final output.
+#### Parameters:
+- `args` *(tuple)*: Contains `X_sample`, `y_sample`, and `oob_indices`.
+
+#### Returns:
+- `tree` *(DecisionTreeCART or DecisionTreeRegression)*: Trained decision tree.
+
+---
+
+### `forward(X, y)`
+Trains the Random Forest by constructing multiple decision trees using bootstrap samples.
+
+#### Parameters:
+- `X` *(array)*: Feature matrix.
+- `y` *(array)*: Target labels.
+
+#### Steps:
+1. Generates bootstrap samples for each tree.
+2. Trains each tree in parallel (if enabled).
+3. Stores OOB predictions for OOB score computation.
+
+---
+
+### `predict(X)`
+Predicts labels for given input samples using majority voting (classification) or averaging (regression).
+
+#### Parameters:
+- `X` *(array)*: Feature matrix for prediction.
+
+#### Returns:
+- `predictions` *(array)*: Predicted labels or values.
+
+---
+
+### `compute_oob_score(y)`
+Computes the Out-of-Bag (OOB) score for the trained forest.
+
+#### Parameters:
+- `y` *(array)*: True target labels.
+
+#### Returns:
+- `oob_score` *(float or None)*: OOB score (accuracy for classification, MSE for regression).
+
+## Conclusion
+This implementation provides an efficient and scalable **Random Forest** model with key functionalities such as **parallel processing** and **OOB score computation**. It can be used for both classification and regression tasks, making it a versatile tool in machine learning.
+
