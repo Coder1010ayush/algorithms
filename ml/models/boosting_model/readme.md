@@ -106,3 +106,91 @@ preds = xgb_classifier.predict(X_test)
 ## Notes
 - The implementation does not support missing value handling or feature importance computation.
 - Further optimizations such as parallelization and histogram-based splitting can improve efficiency(Tried to do but got a lot of issue so may be in future i will added).
+
+
+
+
+# AdaBoost Classification Implementation
+
+## Overview
+This file contains an implementation of the AdaBoost algorithm from scratch for classification. The implementation utilizes decision trees as weak learners and updates sample weights iteratively to improve performance.
+
+## Dependencies
+This implementation relies on the following Python libraries:
+
+```python
+import numpy as np
+import os
+from models.basemodel import BaseModel
+from models.decision_tree.decision_tree import DecisionTreeRegression, DecisionTreeCART
+```
+
+## Class: `AdaboostClassification`
+
+### **Constructor**
+```python
+def __init__(
+    self,
+    n_estimators: int = 100,
+    min_sample_split: int = 5,
+    max_depth: int = 1,
+):
+```
+- **Parameters:**
+  - `n_estimators`: Number of weak learners (default: 100)
+  - `min_sample_split`: Minimum samples required to split a node (default: 5)
+  - `max_depth`: Maximum depth of each weak learner (default: 1)
+- **Attributes:**
+  - `self.model_w`: Stores model weights for each weak learner.
+  - `self.trees`: Stores the trained weak learners.
+
+### **Error Calculation**
+```python
+def __get_error(self, weights: np.ndarray, y: np.ndarray, y_pred: np.ndarray):
+```
+- Computes the weighted classification error.
+
+### **Updating Sample Weights**
+```python
+def __update_data_point_weightage(
+    self, old_w, current_model_w, y: np.ndarray, y_pred: np.ndarray
+):
+```
+- Updates sample weights based on misclassification.
+
+### **Updating Model Weights**
+```python
+def __update_model_weights(self, error):
+```
+- Computes weight of the weak learner based on error.
+
+### **Dataset Resampling**
+```python
+def __get_upsampled_data(self, normal_w: np.ndarray, y: np.ndarray, x: np.ndarray):
+```
+- Uses weighted sampling to create a new dataset for the next iteration.
+
+### **Training Function**
+```python
+def forward(self, x: np.ndarray, y: np.ndarray):
+```
+- Trains multiple weak learners iteratively.
+- Updates sample weights and resamples dataset.
+- Stops training if a weak learner has an error rate >= 0.5.
+
+### **Prediction Functions**
+```python
+def __predict_sample(self, x):
+```
+- Aggregates predictions from weak learners using weighted voting.
+
+```python
+def predict(self, x: np.ndarray):
+```
+- Predicts class labels for input samples.
+
+## Notes
+- Uses `DecisionTreeCART` as a weak learner.
+- Handles sample weighting and dataset resampling effectively.
+- Stops early if the weak learner is too weak (error ≥ 0.5).
+
