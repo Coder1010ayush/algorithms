@@ -194,3 +194,47 @@ def predict(self, x: np.ndarray):
 - Handles sample weighting and dataset resampling effectively.
 - Stops early if the weak learner is too weak (error ≥ 0.5).
 
+
+
+
+# AdaBoost Regression from Scratch
+
+## Overview
+This file contains an implementation of AdaBoost for regression, built from scratch using NumPy. The weak learner used in this implementation is a Decision Tree Regressor (CART). The AdaBoost algorithm iteratively trains weak models, assigns them weights based on their performance, and updates sample weights to focus more on difficult examples.
+
+## Features
+- Implements AdaBoost for regression using Decision Trees.
+- Uses weighted sampling to improve weak learners iteratively.
+- Implements custom loss and weight update mechanisms.
+- Supports hyperparameter tuning for `n_estimators`, `min_sample_split`, and `max_depth`.
+
+
+## Implementation Details
+### Core Functions
+1. **Error Calculation:**
+   - Computes weighted squared error for weak learners.
+
+2. **Weight Update Mechanism:**
+   - Adjusts weights of incorrectly predicted samples.
+   - Uses exponential update rules for adjusting data point weights.
+
+3. **Weighted Sampling:**
+   - Samples training data based on updated weight distribution.
+
+4. **Final Prediction:**
+   - Uses a weighted sum of weak learners' outputs.
+
+### Model Workflow
+1. Initialize sample weights.
+2. Train weak learners sequentially on weighted samples.
+3. Compute weighted error for each weak model.
+4. Assign model weight based on performance.
+5. Update sample weights to emphasize harder examples.
+6. Repeat until `n_estimators` is reached.
+
+## Hyperparameters
+| Parameter          | Description                                    | Default Value |
+|-------------------|--------------------------------|---------------|
+| `n_estimators`    | Number of weak learners         | 100           |
+| `min_sample_split` | Minimum samples to split a node | 5             |
+| `max_depth`       | Maximum depth of weak learners | 1             |
