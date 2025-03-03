@@ -238,3 +238,92 @@ This file contains an implementation of AdaBoost for regression, built from scra
 | `n_estimators`    | Number of weak learners         | 100           |
 | `min_sample_split` | Minimum samples to split a node | 5             |
 | `max_depth`       | Maximum depth of weak learners | 1             |
+
+-----
+-----
+-----
+# Gradient Boosting Implementation
+
+## Overview
+This document details the implementation of the Gradient Boosting algorithm for both regression and classification, including multi-class classification.
+
+## Gradient Boosting for Regression
+### **Algorithm Overview:**
+1. Initialize predictions with the mean of the target variable.
+2. Compute residuals as the difference between actual and predicted values.
+3. Train a decision tree on the residuals.
+4. Update the predictions using a learning rate.
+5. Repeat steps 2-4 for `n_estimators` iterations or until convergence.
+6. Use the sum of tree outputs to make final predictions.
+
+### **Key Components:**
+- Uses Decision Trees (CART) as weak learners.
+- Loss function: Mean Squared Error (MSE) with gradient updates.
+- Supports early stopping based on a tolerance threshold.
+
+### **Mathematical Formulation:**
+Let \( F_0(x) = \text{mean}(y) \) be the initial model. Each subsequent tree \( h_m(x) \) is trained on the residuals:
+
+\[
+    r_i = y_i - F_{m-1}(x_i)
+\]
+
+The model update at iteration \( m \) is:
+
+\[
+    F_m(x) = F_{m-1}(x) + \eta h_m(x)
+\]
+
+where \( \eta \) is the learning rate.
+
+---
+## Gradient Boosting for Classification
+### **Binary Classification:**
+1. Convert labels to \\{-1,1\\} and initialize predictions using the log-odds.
+2. Compute the negative gradient of the log loss as residuals.
+3. Train a decision tree on these residuals.
+4. Update predictions using a learning rate.
+5. Use the sigmoid function to obtain probabilities.
+6. Final prediction is based on a threshold (e.g., 0.5).
+
+### **Multi-Class Classification:**
+1. Convert labels to one-hot encoding.
+2. Initialize predictions with class priors.
+3. Compute negative gradients for each class.
+4. Train a separate decision tree for each class.
+5. Use softmax activation for probability conversion.
+6. Final class is chosen based on the highest probability.
+
+### **Mathematical Formulation (Multi-Class):**
+For a dataset with \( K \) classes, define initial predictions using class priors:
+
+\[
+    F_0^k(x) = \log \frac{P_k}{1 - P_k}
+\]
+
+At each iteration, compute residuals:
+
+\[
+    r_i^k = y_i^k - \text{softmax}(F_{m-1}^k(x_i))
+\]
+
+Each tree predicts residuals per class:
+
+\[
+    F_m^k(x) = F_{m-1}^k(x) + \eta h_m^k(x)
+\]
+
+Final probabilities are obtained via:
+
+\[
+    P(y=k|x) = \frac{e^{F^k(x)}}{\sum_{j=1}^{K} e^{F^j(x)}}
+\]
+
+### **Key Differences Between Regression & Classification:**
+| Feature              | Regression                      | Classification                  |
+|----------------------|--------------------------------|---------------------------------|
+| Loss Function       | Mean Squared Error (MSE)       | Log Loss (Cross-Entropy)       |
+| Initial Prediction  | Mean of target variable       | Log-odds of class priors       |
+| Final Output       | Continuous values              | Probabilities (sigmoid/softmax) |
+| Residuals Computed | Actual - Predicted            | Negative gradient of log loss  |
+
