@@ -1,7 +1,7 @@
 # Principal Component Analysis (PCA) Implementation
 
 ## Overview
-This repository contains an implementation of **Principal Component Analysis (PCA)** from scratch using NumPy. PCA is a dimensionality reduction technique that transforms high-dimensional data into a lower-dimensional form while retaining as much variance as possible.
+This file contains an implementation of **Principal Component Analysis (PCA)** from scratch using NumPy. PCA is a dimensionality reduction technique that transforms high-dimensional data into a lower-dimensional form while retaining as much variance as possible.
 
 ## Features
 - Implements PCA from scratch without using libraries like scikit-learn.
