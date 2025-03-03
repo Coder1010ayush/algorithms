@@ -14,6 +14,11 @@ class PCA:
 
     def forward(self, x: np.ndarray):
 
+        if self.num_features > x.shape[1]:
+
+            raise ValueError(
+                f"{self.num_features} number of component must be smaller than {x.shape[1]}"
+            )
         self.mean = np.mean(x, axis=0)
         x_std = x - self.mean
         cov = np.cov(x_std, rowvar=False)
