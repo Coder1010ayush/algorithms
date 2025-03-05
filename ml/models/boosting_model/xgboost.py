@@ -213,7 +213,7 @@ class TreeClassifier:
             hessians[right_mask],
         )
 
-        node = XGTree(f_index=f_idx, threshold=thresh)
+        node = XGTree(f_idx=f_idx, threshold=thresh)
         node.left = self._build_tree(X_left, y_left, grad_left, hess_left, depth + 1)
         node.right = self._build_tree(
             X_right, y_right, grad_right, hess_right, depth + 1
@@ -221,7 +221,7 @@ class TreeClassifier:
         return node
 
 
-class XgBoostModelRegressor(BaseModel):
+class XgBoostModelRegressor(TreeRegressor):
     def __init__(
         self,
         n_estimators=100,
@@ -239,6 +239,7 @@ class XgBoostModelRegressor(BaseModel):
         self.lambda_ = lambda_
         self.gamma = gamma
         self.base_predictions = None
+        self.trees = []
 
     def forward(self, X: np.ndarray, y: np.ndarray):
         self.base_prediction = np.mean(y)  # Initial prediction
@@ -271,7 +272,7 @@ class XgBoostModelRegressor(BaseModel):
         return y_pred
 
 
-class XgBoostModelClassifier(BaseModel):
+class XgBoostModelClassifier(TreeClassifier):
     def __init__(
         self,
         n_classes,
@@ -282,7 +283,7 @@ class XgBoostModelClassifier(BaseModel):
         lambda_=1.0,
         gamma=0.0,
     ):
-        super().__init__()
+        super().__init__(n_classes=n_classes)
         self.n_classes = n_classes
         self.n_estimators = n_estimators
         self.learning_rate = learning_rate
@@ -291,6 +292,7 @@ class XgBoostModelClassifier(BaseModel):
         self.lambda_ = lambda_
         self.gamma = gamma
         self.base_predictions = None
+        self.trees = []
 
     def forward(self, X: np.ndarray, y: np.ndarray):
         y_one_hot = np.eye(self.n_classes)[y]  # One-hot encode labels
@@ -305,7 +307,7 @@ class XgBoostModelClassifier(BaseModel):
 
             for k in range(self.n_classes):
                 tree = self._build_tree(X, y, gradients[:, k], hessians[:, k])
-                self.trees[k].append(tree)
+                self.trees.append(tree)
 
                 # Update class predictions
                 y_pred[:, k] += self.learning_rate * np.array(
@@ -323,7 +325,7 @@ class XgBoostModelClassifier(BaseModel):
     def predict_proba(self, X):
         y_pred = np.zeros((X.shape[0], self.n_classes))
         for k in range(self.n_classes):
-            for tree in self.trees[k]:
+            for tree in self.trees:
                 y_pred[:, k] += self.learning_rate * np.array(
                     [self._predict_sample(tree, sample) for sample in X]
                 )

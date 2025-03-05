@@ -7,9 +7,10 @@ from optimizer.gradient_descent_batch import GradientDescentBatch
 from optimizer.gradient_descent_stochastic import GradientDescentStochastic
 from utils.metrics import RegressionMetric
 from models.linear_utils import linear_derivative_function, linear_function
+from models.basemodel import BaseModel
 
 
-class Linear:
+class Linear(BaseModel):
 
     def __init__(
         self,
@@ -57,7 +58,7 @@ class Linear:
         else:
             raise ValueError("Invalid optimizer choice. Use 'batch' or 'stochastic'.")
 
-    def fit(self, X, y):
+    def forward(self, X, y):
         self.coeff, self.intercept, self.loss_hist = self.optimizer.forward(
             x_train=X,
             y_train=y,

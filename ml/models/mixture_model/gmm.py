@@ -55,10 +55,11 @@ class GaussianMixtureModelFast(BaseModel):
             )
             self.weight = np.zeros(x.shape)
 
-            self.mu = [
-                x[random_index]
-                for random_index in random.sample(0, len(x), self.num_cluster)
-            ]
+            # self.mu = [
+            #     x[random_index]
+            #     for random_index in random.sample(0, len(x), self.num_cluster)
+            # ]
+            self.mu = [x[i] for i in random.sample(range(len(x)), self.num_cluster)]
 
         else:
             raise ValueError("Invalid init_method. Choose 'random' or 'kmeans'.")
@@ -168,10 +169,7 @@ class GaussianMixtureModel(BaseModel):
         self.theta = np.full(shape=self.num_cluster, fill_value=1 / self.num_cluster)
         self.weight = np.zeros(x.shape)
 
-        self.mu = [
-            x[random_index]
-            for random_index in random.sample(0, len(x), self.num_cluster)
-        ]
+        self.mu = [x[i] for i in random.sample(range(len(x)), self.num_cluster)]
         self.sigma = [np.cov(x.T) for _ in range(self.num_cluster)]
 
     def forward(self, x: np.ndarray, y: np.ndarray):

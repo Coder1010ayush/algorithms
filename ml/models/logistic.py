@@ -9,6 +9,7 @@ from optimizer.gradient_descent_stochastic import GradientDescentStochastic
 from models.linear_utils import linear_derivative_function, linear_function
 from utils.activation import ActivationFunction
 from utils.metrics import ClassificationMetric
+from models.basemodel import BaseModel
 
 
 class LogisticModel:
@@ -59,7 +60,7 @@ class LogisticModel:
         else:
             raise ValueError("Invalid optimizer choice. Use 'batch' or 'stochastic'.")
 
-    def fit(self, X: np.ndarray, y: np.ndarray):
+    def forward(self, X: np.ndarray, y: np.ndarray):
         self.coeff, self.intercept, self.loss_hist = self.optimizer.forward(
             x_train=X,
             y_train=y,

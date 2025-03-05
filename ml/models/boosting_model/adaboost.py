@@ -69,7 +69,7 @@ class AdaboostClassification(BaseModel):
                 max_depth=self.max_depth,
                 task="classification",
             )
-            tree.fit(x_train, y_train)
+            tree.forward(x_train, y_train)
             y_pred = tree.predict(x=x_train)
             error = self.__get_error(weights, y_train, y_pred)
             if error >= 0.5:
@@ -89,13 +89,15 @@ class AdaboostClassification(BaseModel):
             y_train = y_sel
             self.trees.append(tree)
 
-    def __predict_sample(self, x):
+    def __predict_sample(self, x: np.ndarray):
+        x = x.reshape((1, x.shape[0]))
         class_scores = {}
         for tree, weight in zip(self.trees, self.model_w):
+
             pred = tree.predict(x)
-            if pred not in class_scores:
-                class_scores[pred] = 0
-            class_scores[pred] += weight
+            if pred.item() not in class_scores:
+                class_scores[pred.item()] = 0
+            class_scores[pred.item()] += weight
 
         return max(class_scores, key=class_scores.get)
 
@@ -165,7 +167,7 @@ class AdaboostRegression(BaseModel):
                 max_depth=self.max_depth,
                 task="regression",
             )
-            tree.fit(x_train, y_train)
+            tree.forward(x_train, y_train)
             y_pred = tree.predict(x=x_train)
             error = self.__get_error(weights, y_train, y_pred)
             if error >= 0.8:
