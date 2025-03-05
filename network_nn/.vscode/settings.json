@@ -1,0 +1,16 @@
+{
+    "editor.formatOnSave": true,
+    "editor.fontSize": 15,
+    "editor.lineHeight": 1.9,
+    "editor.bracketPairColorization.enabled": true,
+    "editor.autoClosingBrackets": "always",
+    "editor.formatOnPaste": true,
+    "editor.autoIndent": "advanced",
+    "editor.cursorStyle": "underline",
+    "editor.trimAutoWhitespace": true,
+    "editor.autoClosingComments": "always",
+    "editor.autoClosingQuotes": "languageDefined",
+    "editor.autoSurround": "languageDefined",
+    "window.zoomLevel": -0.8,
+    "git.ignoreLimitWarning": true,
+}
