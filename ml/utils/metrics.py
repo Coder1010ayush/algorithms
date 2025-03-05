@@ -11,25 +11,29 @@ class RegressionMetric:
         self.method = method
 
     def forward(self, y_true: np.ndarray, y_hat: np.ndarray):
+        y_true, y_hat = np.array(y_true), np.array(y_hat)
+
         if self.method == "mae":
-            return np.mean(np.abs(y_true - y_hat))
+            return np.mean(np.abs(y_true - y_hat), axis=0)
 
         elif self.method == "mse":
-            return np.mean(np.square(y_true - y_hat))
+            return np.mean(np.square(y_true - y_hat), axis=0)
 
         elif self.method == "rmse":
-            return np.sqrt(np.mean(np.square(y_true - y_hat)))
+            return np.sqrt(np.mean(np.square(y_true - y_hat), axis=0))
 
         elif self.method == "r2_score":
-            ss_total = np.sum(np.square(y_true - np.mean(y_true)))
-            ss_residual = np.sum(np.square(y_true - y_hat))
-            return 1 - (ss_residual / ss_total)
+            ss_total = np.sum(np.square(y_true - np.mean(y_true, axis=0)), axis=0)
+            ss_residual = np.sum(np.square(y_true - y_hat), axis=0)
+            return 1 - (ss_residual / (ss_total + 1e-8))  # Avoid division by zero
 
         elif self.method == "mape":
             epsilon = 1e-8
             return 100 * np.mean(
-                np.abs((y_true - y_hat) / np.maximum(np.abs(y_true), epsilon))
+                np.abs((y_true - y_hat) / np.clip(np.abs(y_true), epsilon, None)),
+                axis=0,
             )
+
         else:
             raise ValueError(f"Unsupported method '{self.method}' provided")
 

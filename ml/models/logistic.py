@@ -6,7 +6,7 @@ import numpy as np
 from typing import Union, Literal
 from optimizer.gradient_descent_batch import GradientDescentBatch
 from optimizer.gradient_descent_stochastic import GradientDescentStochastic
-from ml.models.linear_utils import linear_derivative_function, linear_function
+from models.linear_utils import linear_derivative_function, linear_function
 from utils.activation import ActivationFunction
 from utils.metrics import ClassificationMetric
 

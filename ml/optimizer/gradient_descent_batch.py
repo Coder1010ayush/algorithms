@@ -52,7 +52,10 @@ class GradientDescentBatch:
         loss_function,
         derivative_function,
     ):
-        self.coeff = np.random.uniform(low=0.0, high=1.0, size=(x_train.shape[1],))
+        max_grad_norm = 2.0
+        self.coeff = np.random.randn(
+            x_train.shape[1],
+        )
         epoch_loss = 0
         for ep in range(self.epochs):
 
@@ -65,10 +68,8 @@ class GradientDescentBatch:
             beta_not, beta = derivative_function(
                 x_train, y_train, y_hat, self.coeff, self.intercept
             )
-
-            if self.norm == "":
-                pass
-            elif self.norm == "l1":
+            beta = np.clip(beta, -max_grad_norm, max_grad_norm)
+            if self.norm == "l1":
                 l1_penalty = self.lambad_l1 * np.sign(self.coeff)
                 beta = beta + l1_penalty
             elif self.norm == "l2":
@@ -87,7 +88,7 @@ class GradientDescentBatch:
             # loss computation
             loss = loss_function(y_train, y_hat)
             epoch_loss += loss
-            self.loss_history.append(epoch_loss)
+            self.loss_history.append(loss)
 
             if ep % self.debug_step == 0 and self.debug_mode == "on":
                 print(
