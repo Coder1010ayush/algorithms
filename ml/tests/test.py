@@ -27,23 +27,9 @@ from tests.data_generator import (
     generate_polynomial_data,
     plot_classification_data,
     plot_regression_data,
+    plot_data_with_labels,
 )
 from utils.metrics import RegressionMetric, ClassificationMetric
-
-
-def plot_data_with_labels(X, y, labels, title):
-    plt.scatter(X[:, 0], X[:, 1], c=y, cmap="viridis", marker="o", label="True Labels")
-    plt.scatter(
-        X[:, 0],
-        X[:, 1],
-        c=labels,
-        cmap="coolwarm",
-        marker="x",
-        label="Predicted Labels",
-    )
-    plt.title(title)
-    plt.legend()
-    plt.show()
 
 
 def test_linear_regression():

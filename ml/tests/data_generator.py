@@ -69,3 +69,18 @@ def plot_classification_data(X, y, title="Classification Data"):
     plt.ylabel("Feature 2")
     plt.title(title)
     plt.show()
+
+
+def plot_data_with_labels(X, y, labels, title):
+    plt.scatter(X[:, 0], X[:, 1], c=y, cmap="viridis", marker="o", label="True Labels")
+    plt.scatter(
+        X[:, 0],
+        X[:, 1],
+        c=labels,
+        cmap="coolwarm",
+        marker="x",
+        label="Predicted Labels",
+    )
+    plt.title(title)
+    plt.legend()
+    plt.show()
