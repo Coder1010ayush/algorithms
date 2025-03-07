@@ -25,7 +25,7 @@ class BaseOperationHandler:
     def forward(self, inputs):
         raise NotImplementedError("Forward pass not implemented for this operation.")
 
-    def backward(self, grad):
+    def backward(self, out_grad):
         raise NotImplementedError("Backward pass not implemented for this operation.")
 
 
@@ -84,7 +84,6 @@ class SubtractionElementWise(BaseOperationHandler):
     def backward(self, out_node):
         input_f, input_s = out_node.creator
         grad = out_node.grad
-
         if input_f.data.shape != grad.shape:
             axis_f = sum_axis(input_f.data.shape, grad.shape)
             grad_f = np.sum(grad, axis=axis_f, keepdims=True)
@@ -107,13 +106,79 @@ def sub(f, g):
     return SubtractionElementWise()([f, g])
 
 
+class ElementWiseMultiply(BaseOperationHandler):
+    def forward(self, inputs):
+        from tensor import Tensor
+
+        left, right = inputs
+        data = left.data * right.data
+        return Tensor(
+            data=data,
+            retain_grad=left.retain_grad,
+            operation="Backward<ElementWiseMultiply>",
+            creator=[left, right],
+        )
+
+    def backward(self, out_grad):
+        input_f, input_s = out_grad
+        grad = out_grad.grad
+        grad_f = grad * input_s.data
+        grad_s = grad * input_f.data
+
+        if input_f.data.shape != grad_f.shape:
+            axis_f = sum_axis(input_f.data.shape, grad_f.shape)
+            grad_f = np.sum(grad_f, axis=axis_f, keepdims=True)
+            grad_f = np.reshape(grad_f, input_f.data.shape)
+
+        if input_s.data.shape != grad_s.shape:
+            axis_s = sum_axis(input_s.data.shape, grad_s.shape)
+            grad_s = np.sum(grad_s, axis=axis_s, keepdims=True)
+            grad_s = np.reshape(grad_s, input_s.data.shape)
+
+        input_f.grad = grad_f if input_f.grad is None else input_f.grad + grad_f
+        input_s.grad = grad_s if input_s.grad is None else input_s.grad + grad_s
+
+
 def mul(f, g):
-    pass
+    return ElementWiseMultiply()([f, g])
 
 
-def matmul(f, g):
-    pass
+class ElementWiseDivision(BaseOperationHandler):
+    def forward(self, inputs):
+        from tensor import Tensor
+
+        left, right = inputs
+        data = left.data / right.data
+        return Tensor(
+            data=data,
+            retain_grad=left.retain_grad,
+            operation="Backward<ElementWiseDivision>",
+            creator=[left, right],
+        )
+
+    def backward(self, out_grad):
+        input_f, input_s = out_grad
+        grad = out_grad.grad
+        grad_f = grad * 1 / input_s.data
+        grad_s = -grad * (input_f.data / (input_s.data**2))
+
+        if input_f.data.shape != grad_f.shape:
+            axis_f = sum_axis(input_f.data.shape, grad_f.shape)
+            grad_f = np.sum(grad_f, axis=axis_f, keepdims=True)
+            grad_f = np.reshape(grad_f, input_f.data.shape)
+
+        if input_s.data.shape != grad_s.shape:
+            axis_s = sum_axis(input_s.data.shape, grad_s.shape)
+            grad_s = np.sum(grad_s, axis=axis_s, keepdims=True)
+            grad_s = np.reshape(grad_s, input_s.data.shape)
+
+        input_f.grad = grad_f if input_f.grad is None else input_f.grad + grad_f
+        input_s.grad = grad_s if input_s.grad is None else input_s.grad + grad_s
 
 
 def div(f, g):
+    return ElementWiseDivision()([f, g])
+
+
+def matmul(f, g):
     pass
