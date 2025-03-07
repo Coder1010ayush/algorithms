@@ -5,7 +5,8 @@ import sys
 from typing import Dict, List, Tuple, Union
 from contextlib import contextmanager
 from typing import Generator
-from autograd.autodiff import diff
+import autograd.autodiff as diff
+from utils import check_tensor_type
 
 
 def device(array, device_id=0):
@@ -53,26 +54,6 @@ def as_cupy_array(x):
             return cp.asarray(x)
         except ImportError:
             return x
-
-
-def check_tensor_type(dta):
-    if isinstance(dta, np.ndarray):
-        return True
-    if isinstance(dta, int) or isinstance(dta, float):
-        return True
-    try:
-        import cupy as cp
-
-        if isinstance(dta, cp.ndarray):
-            return True
-    except ImportError:
-        return False
-
-
-def asTensor(x):
-    if isinstance(x):
-        return x
-    return Tensor(data=x)
 
 
 # for switcging grad computation mode
@@ -139,13 +120,11 @@ class Tensor:
         creator: list = [],
     ):
         if data is not None:
-            from cuda_utils import check_tensor_type
-
             if not check_tensor_type(data):
-                return TypeError(
+                raise TypeError(
                     f"{data} can only be int , float , np.array or cupy.ndarray!"
                 )
-        self.data = data
+        self.data = np.asarray(data, dtype=dtype)
         self.retain_grad = retain_grad
         set_grad_enabled(mode=self.retain_grad)
         self.grad = None
@@ -169,6 +148,10 @@ class Tensor:
 
     def transpose(self):
         return diff.transpose(self)
+
+    @property
+    def dtype(self):
+        return self.data.dtype
 
     def __getitem__(self, key):
         # index based slicing on tensor object
@@ -220,14 +203,14 @@ class Tensor:
 
     # backpropogation function
     def backpropogate(self):
-        if not self.requires_grad:
+        if not self.retain_grad:
             raise ValueError("Gradient tracking is not enabled for this tensor.")
         self.grad = np.ones(shape=self.data.shape, dtype=self.data.dtype)
         nodes_to_process = [self]
 
         while nodes_to_process:
             current_node = nodes_to_process.pop()
-            if current_node.inputs_node:
+            if current_node.creator:
                 if current_node.operation:
                     operation_class = getattr(
                         diff, current_node.operation.split("<")[1].strip(">")
@@ -237,8 +220,8 @@ class Tensor:
                     operation_instance.backward(current_node)
                     current_node.clip_grad()
 
-                for input_node in current_node.inputs_node:
-                    if input_node.requires_grad:
+                for input_node in current_node.creator:
+                    if input_node.retain_grad:
                         nodes_to_process.append(input_node)
 
     # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< arithmetic operations >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
