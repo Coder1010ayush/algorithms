@@ -120,7 +120,7 @@ class ElementWiseMultiply(BaseOperationHandler):
         )
 
     def backward(self, out_grad):
-        input_f, input_s = out_grad
+        input_f, input_s = out_grad.creator
         grad = out_grad.grad
         grad_f = grad * input_s.data
         grad_s = grad * input_f.data
@@ -157,7 +157,7 @@ class ElementWiseDivision(BaseOperationHandler):
         )
 
     def backward(self, out_grad):
-        input_f, input_s = out_grad
+        input_f, input_s = out_grad.creator
         grad = out_grad.grad
         grad_f = grad * 1 / input_s.data
         grad_s = -grad * (input_f.data / (input_s.data**2))
@@ -182,3 +182,27 @@ def div(f, g):
 
 def matmul(f, g):
     pass
+
+
+class TransposeMatrix(BaseOperationHandler):
+
+    def forward(self, inputs):
+        input_f = inputs[0]
+        data = input_f.data.T
+        from tensor import Tensor
+
+        return Tensor(
+            data=data,
+            retain_grad=input_f.retain_grad,
+            operation="Backward<TransposeMatrix>",
+            creator=[input_f],
+        )
+
+    def backward(self, out_grad):
+        input_f = out_grad.creator[0]
+        grad = out_grad.grad
+        input_f.grad = grad.T
+
+
+def transpose(f):
+    return TransposeMatrix()([f])

@@ -262,6 +262,9 @@ class Tensor:
     def matmul(self, other):
         return diff.matmul(self, other)
 
+    def sum(self, axis: int = None):
+        return diff.sum(self, axis)
+
     def mean(self, axis: int = -1):
         return diff.mean(self, axis)
 
@@ -281,6 +284,12 @@ class Tensor:
             return diff.exp(self, base)
         else:
             return diff.exp(self, base)
+
+    def transpose(self):
+        return diff.transpose(self)
+
+    def permute(self, axis: tuple = None):
+        return diff.permute(self, axis)
 
     # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< some advance mathematical functions >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # sigmoid , relu  , gelu , softmax etc
