@@ -5,13 +5,77 @@ import sys
 from typing import Dict, List, Tuple, Union
 from contextlib import contextmanager
 from typing import Generator
+from autograd.autodiff import diff
 
-from zen import diff
+
+def device(array, device_id=0):
+    try:
+        import cupy as cp
+
+        try:
+            n_devices = cp.cuda.runtime.getDeviceCount()
+            if device_id >= n_devices:
+                raise RuntimeError(
+                    f"Device {device_id} not found. Available devices: {n_devices}"
+                )
+            with cp.cuda.Device(device_id):
+                return cp.asarray(array)
+        except cp.cuda.runtime.CUDARuntimeError:
+            return array
+    except ImportError:
+        return array
+
+
+def as_numpy_array(x):
+    from tensor import Tensor
+
+    if isinstance(x, Tensor):
+        x = x.data
+    if np.isscalar(x):
+        return np.array(x)
+    elif isinstance(x, np.ndarray):
+        return x
+
+
+def as_cupy_array(x):
+    from tensor import Tensor
+
+    if isinstance(x, Tensor):
+        x = x.data
+    from torch import is_grad_enabled
+
+    if not is_grad_enabled():
+        raise Exception("CuPy cannot be loaded. Install CuPy!")
+    else:
+        try:
+            import cupy as cp
+
+            return cp.asarray(x)
+        except ImportError:
+            return x
+
+
+def check_tensor_type(dta):
+    if isinstance(dta, np.ndarray):
+        return True
+    if isinstance(dta, int) or isinstance(dta, float):
+        return True
+    try:
+        import cupy as cp
+
+        if isinstance(dta, cp.ndarray):
+            return True
+    except ImportError:
+        return False
+
+
+def asTensor(x):
+    if isinstance(x):
+        return x
+    return Tensor(data=x)
 
 
 # for switcging grad computation mode
-
-
 class NoGradientContext:
     def __init__(self):
         self.prev_state = None
@@ -75,7 +139,7 @@ class Tensor:
         creator: list = [],
     ):
         if data is not None:
-            from zen.utils import check_tensor_type
+            from cuda_utils import check_tensor_type
 
             if not check_tensor_type(data):
                 return TypeError(
