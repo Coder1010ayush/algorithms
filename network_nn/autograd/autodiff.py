@@ -5,6 +5,8 @@ import numpy as np
 from utils import asTensor
 
 # <<<<<<<<<<<<<<<<<<<<<<<< base class or template for defining custom fnction for  backward gradient computation support >>>>>>>>>>>>>>>>>>>>>>>>>
+# in depth implementation for forward and backprop for all the major operations which i use in pytorch more often.
+# this is highly flexible and easy to add any new operation ( just have to add a class with forward and backward function that's it. )
 
 
 def sum_axis(input_shape, grad_shape):
@@ -840,3 +842,340 @@ class SetItem(BaseOperationHandler):
 
 def set_item(f, key, value):
     return SetItem()([f], key, value)
+
+
+# thanks to my semester Prof. Prerna Mukherji for helping to implement conv backward propogation method
+class Conv1D(BaseOperationHandler):
+    def forward(self, inputs, filters, stride=1, padding="valid"):
+        input_f = inputs[0]
+        input_data = input_f.data
+        filter_data = filters.data
+
+        batch_size, channels, input_len = input_data.shape
+        num_filters, _, filter_len = filter_data.shape
+
+        if padding == "same":
+            pad = (filter_len - 1) // 2
+            input_data = np.pad(
+                input_data, ((0, 0), (0, 0), (pad, pad)), mode="constant"
+            )
+        elif padding != "valid":
+            raise ValueError("Padding must be 'same' or 'valid'.")
+
+        output_len = (input_data.shape[2] - filter_len) // stride + 1
+        output = np.zeros((batch_size, num_filters, output_len))
+
+        # Perform convolution
+        for b in range(batch_size):  # Batch dimension
+            for f in range(num_filters):  # Filter dimension
+                for i in range(output_len):
+                    for c in range(channels):  # Channel dimension
+                        segment = input_data[b, c, i * stride : i * stride + filter_len]
+                        output[b, f, i] += np.sum(segment * filter_data[f, c])
+
+        from tensor import Tensor
+
+        return Tensor(
+            data=output,
+            retain_grad=True,
+            operation="Backward<Conv1D>",
+            creator=[input_f, filters],
+            meta={
+                "input_shape": input_f.data.shape,
+                "filter_shape": filter_data.shape,
+                "stride": stride,
+                "padding": padding,
+            },
+        )
+
+    def backward(self, out_grad):
+        input_f, filters = out_grad.creator
+        input_shape = out_grad.meta["input_shape"]
+        filter_shape = out_grad.meta["filter_shape"]
+        stride = out_grad.meta["stride"]
+        padding = out_grad.meta["padding"]
+
+        batch_size, channels, input_len = input_shape
+        num_filters, _, filter_len = filter_shape
+
+        grad_input = np.zeros_like(input_f.data)
+        grad_filters = np.zeros_like(filters.data)
+
+        if padding == "same":
+            pad = (filter_len - 1) // 2
+            input_padded = np.pad(
+                input_f.data, ((0, 0), (0, 0), (pad, pad)), mode="constant"
+            )
+            grad_input_padded = np.pad(
+                grad_input, ((0, 0), (0, 0), (pad, pad)), mode="constant"
+            )
+        else:
+            input_padded = input_f.data
+            grad_input_padded = grad_input
+
+        for b in range(batch_size):
+            for f in range(num_filters):
+                for i in range(out_grad.data.shape[2]):
+                    for c in range(channels):
+                        start = i * stride
+                        end = start + filter_len
+                        grad_input_padded[b, c, start:end] += (
+                            filters.data[f, c] * out_grad.grad[b, f, i]
+                        )
+                        grad_filters[f, c] += (
+                            input_padded[b, c, start:end] * out_grad.grad[b, f, i]
+                        )
+
+        if padding == "same":
+            grad_input = (
+                grad_input_padded[:, :, pad:-pad] if pad > 0 else grad_input_padded
+            )
+        else:
+            grad_input = grad_input_padded
+
+        input_f.grad = grad_input if input_f.grad is None else input_f.grad + grad_input
+        filters.grad = (
+            grad_filters if filters.grad is None else filters.grad + grad_filters
+        )
+
+
+def conv1d(f, filters, stride=1, padding="valid"):
+    return Conv1D()([f], filters, stride=stride, padding=padding)
+
+
+class Conv2D(BaseOperationHandler):
+    def forward(self, inputs, filters, stride=1, padding="valid"):
+        input_f = inputs[0]
+        input_data = input_f.data
+        filter_data = filters.data
+
+        batch_size, channels, input_h, input_w = input_data.shape
+        num_filters, _, filter_h, filter_w = filter_data.shape
+
+        if padding == "same":
+            pad_h = (filter_h - 1) // 2
+            pad_w = (filter_w - 1) // 2
+            input_data = np.pad(
+                input_data,
+                ((0, 0), (0, 0), (pad_h, pad_h), (pad_w, pad_w)),
+                mode="constant",
+            )
+        elif padding != "valid":
+            raise ValueError("Padding must be 'same' or 'valid'.")
+
+        output_h = (input_data.shape[2] - filter_h) // stride + 1
+        output_w = (input_data.shape[3] - filter_w) // stride + 1
+        output = np.zeros((batch_size, num_filters, output_h, output_w))
+
+        for b in range(batch_size):
+            for f in range(num_filters):
+                for i in range(output_h):
+                    for j in range(output_w):
+                        for c in range(channels):
+                            h_start = i * stride
+                            w_start = j * stride
+                            segment = input_data[
+                                b,
+                                c,
+                                h_start : h_start + filter_h,
+                                w_start : w_start + filter_w,
+                            ]
+                            output[b, f, i, j] += np.sum(segment * filter_data[f, c])
+        from tensor import Tensor
+
+        return Tensor(
+            data=output,
+            retain_grad=True,
+            operation="Backward<Conv2D>",
+            creator=[input_f, filters],
+            meta={
+                "input_shape": input_f.data.shape,
+                "filter_shape": filter_data.shape,
+                "stride": stride,
+                "padding": padding,
+            },
+        )
+
+    def backward(self, out_grad):
+        input_f, filters = out_grad.creator
+        input_data = input_f.data
+        filter_data = filters.data
+        stride = out_grad.meta["stride"]
+        padding = out_grad.meta["padding"]
+
+        batch_size, channels, input_h, input_w = input_data.shape
+        num_filters, _, filter_h, filter_w = filter_data.shape
+
+        # Padding logic
+        if padding == "same":
+            pad_h = (filter_h - 1) // 2
+            pad_w = (filter_w - 1) // 2
+            input_data = np.pad(
+                input_data,
+                ((0, 0), (0, 0), (pad_h, pad_h), (pad_w, pad_w)),
+                mode="constant",
+            )
+
+        grad_input = np.zeros_like(input_data)
+        grad_filters = np.zeros_like(filter_data)
+
+        for b in range(out_grad.data.shape[0]):
+            for f in range(num_filters):
+                for i in range(out_grad.data.shape[2]):
+                    for j in range(out_grad.data.shape[3]):
+                        for c in range(channels):
+                            h_start = i * stride
+                            w_start = j * stride
+                            segment = input_data[
+                                b,
+                                c,
+                                h_start : h_start + filter_h,
+                                w_start : w_start + filter_w,
+                            ]
+                            grad_filters[f, c] += segment * out_grad.data[b, f, i, j]
+                            grad_input[
+                                b,
+                                c,
+                                h_start : h_start + filter_h,
+                                w_start : w_start + filter_w,
+                            ] += (
+                                filter_data[f, c] * out_grad.data[b, f, i, j]
+                            )
+
+        if padding == "same":
+            grad_input = grad_input[:, :, pad_h:-pad_h, pad_w:-pad_w]
+
+        input_f.grad = grad_input if input_f.grad is None else input_f.grad + grad_input
+        filters.grad = (
+            grad_filters if filters.grad is None else filters.grad + grad_filters
+        )
+
+
+def conv2d(f, filters, stride=1, padding="valid"):
+    return Conv2D()([f], filters, stride=stride, padding=padding)
+
+
+class Conv3D(BaseOperationHandler):
+    def forward(self, inputs, filters, stride=1, padding="valid"):
+        input_f = inputs[0]
+        input_data = input_f.data
+        filter_data = filters.data
+
+        batch_size, channels, input_d, input_h, input_w = input_data.shape
+        num_filters, _, filter_d, filter_h, filter_w = filter_data.shape
+
+        if padding == "same":
+            pad_d = (filter_d - 1) // 2
+            pad_h = (filter_h - 1) // 2
+            pad_w = (filter_w - 1) // 2
+            input_data = np.pad(
+                input_data,
+                ((0, 0), (0, 0), (pad_d, pad_d), (pad_h, pad_h), (pad_w, pad_w)),
+                mode="constant",
+            )
+        elif padding != "valid":
+            raise ValueError("Padding must be 'same' or 'valid'.")
+
+        output_d = (input_data.shape[2] - filter_d) // stride + 1
+        output_h = (input_data.shape[3] - filter_h) // stride + 1
+        output_w = (input_data.shape[4] - filter_w) // stride + 1
+        output = np.zeros((batch_size, num_filters, output_d, output_h, output_w))
+
+        for b in range(batch_size):
+            for f in range(num_filters):
+                for d in range(output_d):
+                    for i in range(output_h):
+                        for j in range(output_w):
+                            for c in range(channels):
+                                d_start = d * stride
+                                h_start = i * stride
+                                w_start = j * stride
+                                segment = input_data[
+                                    b,
+                                    c,
+                                    d_start : d_start + filter_d,
+                                    h_start : h_start + filter_h,
+                                    w_start : w_start + filter_w,
+                                ]
+                                output[b, f, d, i, j] += np.sum(
+                                    segment * filter_data[f, c]
+                                )
+        from tensor import Tensor
+
+        return Tensor(
+            data=output,
+            retain_grad=True,
+            operation="Backward<Conv3D>",
+            creator=[input_f, filters],
+            meta={
+                "input_shape": input_f.data.shape,
+                "filter_shape": filter_data.shape,
+                "stride": stride,
+                "padding": padding,
+            },
+        )
+
+    def backward(self, out_grad):
+        input_f, filters = out_grad.creator
+        input_data = input_f.data
+        filter_data = filters.data
+        stride = out_grad.meta["stride"]
+        padding = out_grad.meta["padding"]
+
+        batch_size, channels, input_d, input_h, input_w = input_data.shape
+        num_filters, _, filter_d, filter_h, filter_w = filter_data.shape
+
+        if padding == "same":
+            pad_d = (filter_d - 1) // 2
+            pad_h = (filter_h - 1) // 2
+            pad_w = (filter_w - 1) // 2
+            input_data = np.pad(
+                input_data,
+                ((0, 0), (0, 0), (pad_d, pad_d), (pad_h, pad_h), (pad_w, pad_w)),
+                mode="constant",
+            )
+
+        grad_input = np.zeros_like(input_data)
+        grad_filters = np.zeros_like(filter_data)
+
+        for b in range(batch_size):
+            for f in range(num_filters):
+                for d in range(out_grad.data.shape[2]):
+                    for i in range(out_grad.data.shape[3]):
+                        for j in range(out_grad.data.shape[4]):
+                            for c in range(channels):
+                                d_start = d * stride
+                                h_start = i * stride
+                                w_start = j * stride
+
+                                segment = input_data[
+                                    b,
+                                    c,
+                                    d_start : d_start + filter_d,
+                                    h_start : h_start + filter_h,
+                                    w_start : w_start + filter_w,
+                                ]
+                                grad_filters[f, c] += (
+                                    segment * out_grad.data[b, f, d, i, j]
+                                )
+                                grad_input[
+                                    b,
+                                    c,
+                                    d_start : d_start + filter_d,
+                                    h_start : h_start + filter_h,
+                                    w_start : w_start + filter_w,
+                                ] += (
+                                    filter_data[f, c] * out_grad.data[b, f, d, i, j]
+                                )
+
+        if padding == "same":
+            grad_input = grad_input[:, :, pad_d:-pad_d, pad_h:-pad_h, pad_w:-pad_w]
+
+        input_f.grad = grad_input if input_f.grad is None else input_f.grad + grad_input
+        filters.grad = (
+            grad_filters if filters.grad is None else filters.grad + grad_filters
+        )
+
+
+def conv3d(f, filters, stride=1, padding="valid"):
+    return Conv3D()([f], filters, stride=stride, padding=padding)
