@@ -1006,7 +1006,6 @@ class Conv2D(BaseOperationHandler):
         batch_size, channels, input_h, input_w = input_data.shape
         num_filters, _, filter_h, filter_w = filter_data.shape
 
-        # Padding logic
         if padding == "same":
             pad_h = (filter_h - 1) // 2
             pad_w = (filter_w - 1) // 2
