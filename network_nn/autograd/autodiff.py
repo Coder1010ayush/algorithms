@@ -28,8 +28,14 @@ def handle_broadcasting_and_reshape(input, grad):
     return grad
 
 
+def ensure_minimum_dims(array, min_dims=1):
+    while array.ndim < min_dims:
+        array = np.expand_dims(array, axis=0)
+    return array
+
+
 class BaseOperationHandler:
-    def __call__(self, inputs):
+    def __call__(self, *inputs):
         return self.forward(inputs)
 
     def forward(self, inputs):
@@ -62,7 +68,7 @@ class AddElementWise(BaseOperationHandler):
 
 
 def add(f, g):
-    return AddElementWise()([f, g])
+    return AddElementWise()(f, g)
 
 
 class SubtractionElementWise(BaseOperationHandler):
@@ -89,7 +95,7 @@ class SubtractionElementWise(BaseOperationHandler):
 
 
 def sub(f, g):
-    return SubtractionElementWise()([f, g])
+    return SubtractionElementWise()(f, g)
 
 
 class ElementWiseMultiply(BaseOperationHandler):
@@ -119,7 +125,7 @@ class ElementWiseMultiply(BaseOperationHandler):
 
 
 def mul(f, g):
-    return ElementWiseMultiply()([f, g])
+    return ElementWiseMultiply()(f, g)
 
 
 class ElementWiseDivision(BaseOperationHandler):
@@ -153,7 +159,7 @@ class ElementWiseDivision(BaseOperationHandler):
 
 
 def div(f, g):
-    return ElementWiseDivision()([f, g])
+    return ElementWiseDivision()(f, g)
 
 
 class TransposeMatrix(BaseOperationHandler):
@@ -177,14 +183,15 @@ class TransposeMatrix(BaseOperationHandler):
 
 
 def transpose(f):
-    return TransposeMatrix()([f])
+    return TransposeMatrix()(f)
 
 
 class Permute(BaseOperationHandler):
-    def forward(self, inputs, axes):
+    def forward(self, inputs):
         from tensor import Tensor
 
         input_f = inputs[0]
+        axes = inputs[1]
         data = np.transpose(input_f.data, axes)
         return Tensor(
             data=data,
@@ -205,14 +212,15 @@ class Permute(BaseOperationHandler):
 
 
 def permute(f, axes):
-    return Permute()([f], axes)
+    return Permute()(f, axes)
 
 
 class Reshape(BaseOperationHandler):
-    def forward(self, inputs, new_shape):
+    def forward(self, inputs):
         from tensor import Tensor
 
         input_f = inputs[0]
+        new_shape = inputs[1]
         data = np.reshape(input_f.data, new_shape)
         return Tensor(
             data=data,
@@ -231,14 +239,17 @@ class Reshape(BaseOperationHandler):
 
 
 def reshape(f, new_shape):
-    return Reshape()([f], new_shape)
+    return Reshape()(f, new_shape)
 
 
 class Sum(BaseOperationHandler):
-    def forward(self, inputs, axis=None, keepdims=False):
+    def forward(self, inputs):
         from tensor import Tensor
 
         input_f = inputs[0]
+        axis = inputs[1] if len(inputs) > 1 else None
+        keepdims = inputs[2] if len(inputs) > 2 else False
+
         data = np.sum(input_f.data, axis=axis, keepdims=keepdims)
         return Tensor(
             data=data,
@@ -260,18 +271,23 @@ class Sum(BaseOperationHandler):
                 shape[ax] = 1
             grad = np.reshape(grad, shape)
 
-        input_f.grad = grad if input_f.grad is None else input_f.grad + grad
+        if input_f.grad is None:
+            input_f.grad = grad
+        else:
+            input_f.grad += grad
 
 
 def sum(f, axis=None, keepdims=False):
-    return Sum()([f], axis, keepdims)
+    return Sum()(f, axis, keepdims)
 
 
 class Mean(BaseOperationHandler):
-    def forward(self, inputs, axis=None, keepdims=False):
+    def forward(self, inputs):
         from tensor import Tensor
 
         input_f = inputs[0]
+        axis = inputs[1]
+        keepdims = inputs[2]
         data = np.mean(input_f.data, axis=axis, keepdims=keepdims)
         return Tensor(
             data=data,
@@ -304,14 +320,16 @@ class Mean(BaseOperationHandler):
 
 
 def mean(f, axis=None, keepdims=False):
-    return Mean()([f], axis, keepdims)
+    return Mean()(f, axis, keepdims)
 
 
 class Std(BaseOperationHandler):
-    def forward(self, inputs, axis=None, keepdims=False):
+    def forward(self, inputs):
         from tensor import Tensor
 
         input_f = inputs[0]
+        axis = inputs[1]
+        keepdims = inputs[2]
         data = np.std(input_f.data, axis=axis, keepdims=keepdims)
         return Tensor(
             data=data,
@@ -340,7 +358,7 @@ class Std(BaseOperationHandler):
 
 
 def std(f, axis=None, keepdims=False):
-    return Std()([f], axis, keepdims)
+    return Std()(f, axis, keepdims)
 
 
 class MatMul(BaseOperationHandler):
@@ -359,8 +377,38 @@ class MatMul(BaseOperationHandler):
     def backward(self, out_grad):
         input_f, input_s = out_grad.creator
         grad = out_grad.grad
-        grad_f = np.matmul(grad, input_s.data.T)
-        grad_s = np.matmul(input_f.data.T, grad)
+
+        if np.isscalar(grad) or grad.shape == ():
+            grad = np.ones_like(out_grad.data)
+
+        shape_f = input_f.data.shape
+        shape_s = input_s.data.shape
+
+        if len(shape_s) == 1:
+            grad_f = np.matmul(grad[..., np.newaxis], input_s.data[np.newaxis, :])
+            grad_s = np.matmul(input_f.data.T, grad)
+        elif len(shape_f) == 1:
+            grad_f = np.matmul(grad[:, np.newaxis], input_s.data[np.newaxis, :])
+            grad_s = np.matmul(input_f.data, grad)
+        else:
+            grad_f = np.matmul(
+                grad, np.expand_dims(input_s.data, axis=0).swapaxes(-1, -2)
+            )
+            grad_s = np.matmul(
+                np.expand_dims(input_f.data, axis=0).swapaxes(-1, -2), grad
+            )
+
+        while grad_f.ndim > len(shape_f):
+            grad_f = grad_f.sum(axis=0)
+        for i, dim in enumerate(shape_f):
+            if dim == 1:
+                grad_f = grad_f.sum(axis=i, keepdims=True)
+
+        while grad_s.ndim > len(shape_s):
+            grad_s = grad_s.sum(axis=0)
+        for i, dim in enumerate(shape_s):
+            if dim == 1:
+                grad_s = grad_s.sum(axis=i, keepdims=True)
 
         input_f.grad = (
             handle_broadcasting_and_reshape(input_f, grad_f)
@@ -375,14 +423,15 @@ class MatMul(BaseOperationHandler):
 
 
 def matmul(f, g):
-    return MatMul()([f, g])
+    return MatMul()(f, g)
 
 
 class Power(BaseOperationHandler):
-    def forward(self, inputs, power):
+    def forward(self, inputs):
         from tensor import Tensor
 
         input_f = inputs[0]
+        power = inputs[1]
         data = np.power(input_f.data, power)
         return Tensor(
             data=data,
@@ -404,7 +453,7 @@ class Power(BaseOperationHandler):
 
 
 def power(f, p):
-    return Power()([f], power=p)
+    return Power()(f, p)
 
 
 class Log(BaseOperationHandler):
@@ -428,7 +477,7 @@ class Log(BaseOperationHandler):
 
 
 def log(f):
-    return Log()([f])
+    return Log()(f)
 
 
 class Exp(BaseOperationHandler):
@@ -452,7 +501,7 @@ class Exp(BaseOperationHandler):
 
 
 def exp(f):
-    return Exp()([f])
+    return Exp()(f)
 
 
 class Sqrt(BaseOperationHandler):
@@ -476,7 +525,7 @@ class Sqrt(BaseOperationHandler):
 
 
 def sqrt(f):
-    return Sqrt()([f])
+    return Sqrt()(f)
 
 
 class ReLU(BaseOperationHandler):
@@ -500,7 +549,7 @@ class ReLU(BaseOperationHandler):
 
 
 def relu(f):
-    return ReLU()([f])
+    return ReLU()(f)
 
 
 class Sigmoid(BaseOperationHandler):
@@ -528,7 +577,7 @@ class Sigmoid(BaseOperationHandler):
 
 
 def sigmoid(f):
-    return Sigmoid()([f])
+    return Sigmoid()(f)
 
 
 class Tanh(BaseOperationHandler):
@@ -552,7 +601,7 @@ class Tanh(BaseOperationHandler):
 
 
 def tanh(f):
-    return Tanh()([f])
+    return Tanh()(f)
 
 
 class Softmax(BaseOperationHandler):
@@ -560,6 +609,7 @@ class Softmax(BaseOperationHandler):
         from tensor import Tensor
 
         input_f = inputs[0]
+        axis = inputs[1]
         exps = np.exp(input_f.data - np.max(input_f.data, axis=axis, keepdims=True))
         data = exps / np.sum(exps, axis=axis, keepdims=True)
         return Tensor(
@@ -586,7 +636,7 @@ class Softmax(BaseOperationHandler):
 
 
 def softmax(f, axis=-1):
-    return Softmax()([f], axis=axis)
+    return Softmax()(f, axis)
 
 
 class Clip(BaseOperationHandler):
@@ -594,6 +644,8 @@ class Clip(BaseOperationHandler):
         from tensor import Tensor
 
         input_f = inputs[0]
+        min_val = inputs[1]
+        max_val = inputs[2]
         data = np.clip(input_f.data, min_val, max_val)
         return Tensor(
             data=data,
@@ -615,7 +667,7 @@ class Clip(BaseOperationHandler):
 
 
 def clip(f, min_val, max_val):
-    return Clip()([f], min_val=min_val, max_val=max_val)
+    return Clip()(f, min_val, max_val)
 
 
 class Abs(BaseOperationHandler):
@@ -639,7 +691,7 @@ class Abs(BaseOperationHandler):
 
 
 def abs(f):
-    return Abs()([f])
+    return Abs()(f)
 
 
 class Negative(BaseOperationHandler):
@@ -666,7 +718,7 @@ class Negative(BaseOperationHandler):
 
 
 def neg(f):
-    return Negative()([f])
+    return Negative()(f)
 
 
 class ReduceSum(BaseOperationHandler):
@@ -674,6 +726,8 @@ class ReduceSum(BaseOperationHandler):
         from tensor import Tensor
 
         input_f = inputs[0]
+        axis = inputs[1]
+        keepdims = inputs[2]
         data = np.sum(input_f.data, axis=axis, keepdims=keepdims)
         return Tensor(
             data=data,
@@ -700,7 +754,7 @@ class ReduceSum(BaseOperationHandler):
 
 
 def reduce_sum(f, axis=None, keepdims=False):
-    return ReduceSum()([f], axis=axis, keepdims=keepdims)
+    return ReduceSum()(f, axis, keepdims)
 
 
 class Broadcast(BaseOperationHandler):
@@ -708,6 +762,7 @@ class Broadcast(BaseOperationHandler):
         from tensor import Tensor
 
         input_f = inputs[0]
+        shape = inputs[1]
         data = np.broadcast_to(input_f.data, shape)
         return Tensor(
             data=data,
@@ -724,13 +779,14 @@ class Broadcast(BaseOperationHandler):
 
 
 def broadcast(f, shape):
-    return Broadcast()([f], shape=shape)
+    return Broadcast()(f, shape)
 
 
 class Concat(BaseOperationHandler):
     def forward(self, inputs, axis=0):
         from tensor import Tensor
 
+        axis = inputs[1]
         data = np.concatenate([i.data for i in inputs], axis=axis)
         return Tensor(
             data=data,
@@ -752,7 +808,7 @@ class Concat(BaseOperationHandler):
 
 
 def concat(*args, axis=0):
-    return Concat()(list(args), axis=axis)
+    return Concat()(list(args), axis)
 
 
 class Pad(BaseOperationHandler):
@@ -760,6 +816,9 @@ class Pad(BaseOperationHandler):
         from tensor import Tensor
 
         input_f = inputs[0]
+        pad_width = inputs[1]
+        mode = inputs[2]
+        constant_values = inputs[3]
         data = np.pad(
             input_f.data, pad_width, mode=mode, constant_values=constant_values
         )
@@ -781,7 +840,7 @@ class Pad(BaseOperationHandler):
 
 
 def pad(f, pad_width, mode="constant", constant_values=0):
-    return Pad()([f], pad_width=pad_width, mode=mode, constant_values=constant_values)
+    return Pad()(f, pad_width, mode, constant_values)
 
 
 class Slice(BaseOperationHandler):
@@ -789,6 +848,7 @@ class Slice(BaseOperationHandler):
         from tensor import Tensor
 
         input_f = inputs[0]
+        key = inputs[1]
         sliced_data = input_f.data[key]
         return Tensor(
             data=sliced_data,
@@ -808,7 +868,7 @@ class Slice(BaseOperationHandler):
 
 
 def slice_tensor(f, key):
-    return Slice()([f], key=key)
+    return Slice()(f, key)
 
 
 class SetItem(BaseOperationHandler):
@@ -816,6 +876,8 @@ class SetItem(BaseOperationHandler):
         from tensor import Tensor
 
         input_f = inputs[0]
+        key = inputs[1]
+        value = inputs[2]
         new_data = input_f.data.copy()
 
         if isinstance(value, Tensor):
@@ -841,13 +903,16 @@ class SetItem(BaseOperationHandler):
 
 
 def set_item(f, key, value):
-    return SetItem()([f], key, value)
+    return SetItem()(f, key, value)
 
 
 # thanks to my semester Prof. Prerna Mukherji for helping to implement conv backward propogation method
 class Conv1D(BaseOperationHandler):
-    def forward(self, inputs, filters, stride=1, padding="valid"):
+    def forward(self, inputs):
         input_f = inputs[0]
+        filters = inputs[1]
+        stride = inputs[2]
+        padding = inputs[3]
         input_data = input_f.data
         filter_data = filters.data
 
@@ -940,12 +1005,15 @@ class Conv1D(BaseOperationHandler):
 
 
 def conv1d(f, filters, stride=1, padding="valid"):
-    return Conv1D()([f], filters, stride=stride, padding=padding)
+    return Conv1D()(f, filters, stride, padding)
 
 
 class Conv2D(BaseOperationHandler):
-    def forward(self, inputs, filters, stride=1, padding="valid"):
+    def forward(self, inputs):
         input_f = inputs[0]
+        filters = inputs[1]
+        stride = inputs[2]
+        padding = inputs[3]
         input_data = input_f.data
         filter_data = filters.data
 
@@ -1051,12 +1119,15 @@ class Conv2D(BaseOperationHandler):
 
 
 def conv2d(f, filters, stride=1, padding="valid"):
-    return Conv2D()([f], filters, stride=stride, padding=padding)
+    return Conv2D()(f, filters, stride, padding)
 
 
 class Conv3D(BaseOperationHandler):
-    def forward(self, inputs, filters, stride=1, padding="valid"):
+    def forward(self, inputs):
         input_f = inputs[0]
+        filters = inputs[1]
+        stride = inputs[2]
+        padding = inputs[3]
         input_data = input_f.data
         filter_data = filters.data
 
@@ -1177,4 +1248,4 @@ class Conv3D(BaseOperationHandler):
 
 
 def conv3d(f, filters, stride=1, padding="valid"):
-    return Conv3D()([f], filters, stride=stride, padding=padding)
+    return Conv3D()(f, filters, stride, padding)

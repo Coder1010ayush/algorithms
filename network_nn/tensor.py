@@ -131,6 +131,7 @@ class Tensor:
         self.grad = None
         self.operation = operation
         self.creator = creator
+        self.meta = meta
 
     def __repr__(self):
         return f"netwok_nn.tensor({self.data} , grad = {self.grad})"
@@ -193,7 +194,7 @@ class Tensor:
             np.clip(self.grad, min_val, max_val, out=self.grad)
 
     # backpropogation function
-    def backpropogate(self):
+    def backprop(self):
         if not self.retain_grad:
             raise ValueError("Gradient tracking is not enabled for this tensor.")
         self.grad = np.ones(shape=self.data.shape, dtype=self.data.dtype)

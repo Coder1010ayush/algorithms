@@ -9,13 +9,17 @@ from tensor import Tensor
 
 
 class Initializer:
-    def __init__(self, shape: tuple, init_type: str, retain_grad: bool, meta: dict):
+    def __init__(self):
+        pass
+
+    def initialize(self, shape: tuple, init_type: str, retain_grad: bool, meta: dict):
         self.shape = shape
         self.init_type = init_type
         self.retain_grad = retain_grad
         self.meta = meta
 
-    def __call__(self):
+    def forward(self, shape: tuple, init_type: str, retain_grad: bool, meta: dict):
+        self.initialize(shape, init_type, retain_grad, meta)
         if self.init_type == "uniform":
             return self.uniform(
                 shape=self.shape,
