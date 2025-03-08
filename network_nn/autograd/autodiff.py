@@ -154,10 +154,6 @@ def div(f, g):
     return ElementWiseDivision()([f, g])
 
 
-def matmul(f, g):
-    pass
-
-
 class TransposeMatrix(BaseOperationHandler):
 
     def forward(self, inputs):
@@ -343,3 +339,444 @@ class Std(BaseOperationHandler):
 
 def std(f, axis=None, keepdims=False):
     return Std()([f], axis, keepdims)
+
+
+class MatMul(BaseOperationHandler):
+    def forward(self, inputs):
+        from tensor import Tensor
+
+        left, right = inputs
+        data = np.matmul(left.data, right.data)
+        return Tensor(
+            data=data,
+            retain_grad=True,
+            operation="Backward<MatMul>",
+            creator=[left, right],
+        )
+
+    def backward(self, out_grad):
+        input_f, input_s = out_grad.creator
+        grad = out_grad.grad
+        grad_f = np.matmul(grad, input_s.data.T)
+        grad_s = np.matmul(input_f.data.T, grad)
+
+        input_f.grad = (
+            handle_broadcasting_and_reshape(input_f, grad_f)
+            if input_f.grad is None
+            else input_f.grad + handle_broadcasting_and_reshape(input_f, grad_f)
+        )
+        input_s.grad = (
+            handle_broadcasting_and_reshape(input_s, grad_s)
+            if input_s.grad is None
+            else input_s.grad + handle_broadcasting_and_reshape(input_s, grad_s)
+        )
+
+
+def matmul(f, g):
+    return MatMul()([f, g])
+
+
+class Power(BaseOperationHandler):
+    def forward(self, inputs, power):
+        from tensor import Tensor
+
+        input_f = inputs[0]
+        data = np.power(input_f.data, power)
+        return Tensor(
+            data=data,
+            retain_grad=True,
+            operation="Backward<Power>",
+            creator=[input_f],
+            meta={"power": power},
+        )
+
+    def backward(self, out_grad):
+        input_f = out_grad.creator[0]
+        power = out_grad.meta["power"]
+        grad = out_grad.grad * power * np.power(input_f.data, power - 1)
+        input_f.grad = (
+            handle_broadcasting_and_reshape(input_f, grad)
+            if input_f.grad is None
+            else input_f.grad + handle_broadcasting_and_reshape(input_f, grad)
+        )
+
+
+def power(f, p):
+    return Power()([f], power=p)
+
+
+class Log(BaseOperationHandler):
+    def forward(self, inputs):
+        from tensor import Tensor
+
+        input_f = inputs[0]
+        data = np.log(input_f.data)
+        return Tensor(
+            data=data, retain_grad=True, operation="Backward<Log>", creator=[input_f]
+        )
+
+    def backward(self, out_grad):
+        input_f = out_grad.creator[0]
+        grad = out_grad.grad * (1 / input_f.data)
+        input_f.grad = (
+            handle_broadcasting_and_reshape(input_f, grad)
+            if input_f.grad is None
+            else input_f.grad + handle_broadcasting_and_reshape(input_f, grad)
+        )
+
+
+def log(f):
+    return Log()([f])
+
+
+class Exp(BaseOperationHandler):
+    def forward(self, inputs):
+        from tensor import Tensor
+
+        input_f = inputs[0]
+        data = np.exp(input_f.data)
+        return Tensor(
+            data=data, retain_grad=True, operation="Backward<Exp>", creator=[input_f]
+        )
+
+    def backward(self, out_grad):
+        input_f = out_grad.creator[0]
+        grad = out_grad.grad * np.exp(input_f.data)
+        input_f.grad = (
+            handle_broadcasting_and_reshape(input_f, grad)
+            if input_f.grad is None
+            else input_f.grad + handle_broadcasting_and_reshape(input_f, grad)
+        )
+
+
+def exp(f):
+    return Exp()([f])
+
+
+class Sqrt(BaseOperationHandler):
+    def forward(self, inputs):
+        from tensor import Tensor
+
+        input_f = inputs[0]
+        data = np.sqrt(input_f.data)
+        return Tensor(
+            data=data, retain_grad=True, operation="Backward<Sqrt>", creator=[input_f]
+        )
+
+    def backward(self, out_grad):
+        input_f = out_grad.creator[0]
+        grad = out_grad.grad * (0.5 * np.power(input_f.data, -0.5))
+        input_f.grad = (
+            handle_broadcasting_and_reshape(input_f, grad)
+            if input_f.grad is None
+            else input_f.grad + handle_broadcasting_and_reshape(input_f, grad)
+        )
+
+
+def sqrt(f):
+    return Sqrt()([f])
+
+
+class ReLU(BaseOperationHandler):
+    def forward(self, inputs):
+        from tensor import Tensor
+
+        input_f = inputs[0]
+        data = np.maximum(0, input_f.data)
+        return Tensor(
+            data=data, retain_grad=True, operation="Backward<ReLU>", creator=[input_f]
+        )
+
+    def backward(self, out_grad):
+        input_f = out_grad.creator[0]
+        grad = out_grad.grad * (input_f.data > 0)
+        input_f.grad = (
+            handle_broadcasting_and_reshape(input_f, grad)
+            if input_f.grad is None
+            else input_f.grad + handle_broadcasting_and_reshape(input_f, grad)
+        )
+
+
+def relu(f):
+    return ReLU()([f])
+
+
+class Sigmoid(BaseOperationHandler):
+    def forward(self, inputs):
+        from tensor import Tensor
+
+        input_f = inputs[0]
+        data = 1 / (1 + np.exp(-input_f.data))
+        return Tensor(
+            data=data,
+            retain_grad=True,
+            operation="Backward<Sigmoid>",
+            creator=[input_f],
+        )
+
+    def backward(self, out_grad):
+        input_f = out_grad.creator[0]
+        sigmoid_out = 1 / (1 + np.exp(-input_f.data))
+        grad = out_grad.grad * sigmoid_out * (1 - sigmoid_out)
+        input_f.grad = (
+            handle_broadcasting_and_reshape(input_f, grad)
+            if input_f.grad is None
+            else input_f.grad + handle_broadcasting_and_reshape(input_f, grad)
+        )
+
+
+def sigmoid(f):
+    return Sigmoid()([f])
+
+
+class Tanh(BaseOperationHandler):
+    def forward(self, inputs):
+        from tensor import Tensor
+
+        input_f = inputs[0]
+        data = np.tanh(input_f.data)
+        return Tensor(
+            data=data, retain_grad=True, operation="Backward<Tanh>", creator=[input_f]
+        )
+
+    def backward(self, out_grad):
+        input_f = out_grad.creator[0]
+        grad = out_grad.grad * (1 - np.tanh(input_f.data) ** 2)
+        input_f.grad = (
+            handle_broadcasting_and_reshape(input_f, grad)
+            if input_f.grad is None
+            else input_f.grad + handle_broadcasting_and_reshape(input_f, grad)
+        )
+
+
+def tanh(f):
+    return Tanh()([f])
+
+
+class Softmax(BaseOperationHandler):
+    def forward(self, inputs, axis=-1):
+        from tensor import Tensor
+
+        input_f = inputs[0]
+        exps = np.exp(input_f.data - np.max(input_f.data, axis=axis, keepdims=True))
+        data = exps / np.sum(exps, axis=axis, keepdims=True)
+        return Tensor(
+            data=data,
+            retain_grad=True,
+            operation="Backward<Softmax>",
+            creator=[input_f],
+            meta={"axis": axis},
+        )
+
+    def backward(self, out_grad):
+        input_f = out_grad.creator[0]
+        axis = out_grad.meta["axis"]
+        grad = out_grad.grad
+        softmax_out = out_grad.data
+        grad = softmax_out * (
+            grad - np.sum(grad * softmax_out, axis=axis, keepdims=True)
+        )
+        input_f.grad = (
+            handle_broadcasting_and_reshape(input_f, grad)
+            if input_f.grad is None
+            else input_f.grad + handle_broadcasting_and_reshape(input_f, grad)
+        )
+
+
+def softmax(f, axis=-1):
+    return Softmax()([f], axis=axis)
+
+
+class Clip(BaseOperationHandler):
+    def forward(self, inputs, min_val, max_val):
+        from tensor import Tensor
+
+        input_f = inputs[0]
+        data = np.clip(input_f.data, min_val, max_val)
+        return Tensor(
+            data=data,
+            retain_grad=True,
+            operation="Backward<Clip>",
+            creator=[input_f],
+            meta={"min_val": min_val, "max_val": max_val},
+        )
+
+    def backward(self, out_grad):
+        input_f = out_grad.creator[0]
+        min_val, max_val = out_grad.meta["min_val"], out_grad.meta["max_val"]
+        grad = out_grad.grad * ((input_f.data >= min_val) & (input_f.data <= max_val))
+        input_f.grad = (
+            handle_broadcasting_and_reshape(input_f, grad)
+            if input_f.grad is None
+            else input_f.grad + handle_broadcasting_and_reshape(input_f, grad)
+        )
+
+
+def clip(f, min_val, max_val):
+    return Clip()([f], min_val=min_val, max_val=max_val)
+
+
+class Abs(BaseOperationHandler):
+    def forward(self, inputs):
+        from tensor import Tensor
+
+        input_f = inputs[0]
+        data = np.abs(input_f.data)
+        return Tensor(
+            data=data, retain_grad=True, operation="Backward<Abs>", creator=[input_f]
+        )
+
+    def backward(self, out_grad):
+        input_f = out_grad.creator[0]
+        grad = out_grad.grad * np.sign(input_f.data)
+        input_f.grad = (
+            handle_broadcasting_and_reshape(input_f, grad)
+            if input_f.grad is None
+            else input_f.grad + handle_broadcasting_and_reshape(input_f, grad)
+        )
+
+
+def abs(f):
+    return Abs()([f])
+
+
+class Negative(BaseOperationHandler):
+    def forward(self, inputs):
+        from tensor import Tensor
+
+        input_f = inputs[0]
+        data = -input_f.data
+        return Tensor(
+            data=data,
+            retain_grad=True,
+            operation="Backward<Negative>",
+            creator=[input_f],
+        )
+
+    def backward(self, out_grad):
+        input_f = out_grad.creator[0]
+        grad = -out_grad.grad
+        input_f.grad = (
+            handle_broadcasting_and_reshape(input_f, grad)
+            if input_f.grad is None
+            else input_f.grad + handle_broadcasting_and_reshape(input_f, grad)
+        )
+
+
+def neg(f):
+    return Negative()([f])
+
+
+class ReduceSum(BaseOperationHandler):
+    def forward(self, inputs, axis=None, keepdims=False):
+        from tensor import Tensor
+
+        input_f = inputs[0]
+        data = np.sum(input_f.data, axis=axis, keepdims=keepdims)
+        return Tensor(
+            data=data,
+            retain_grad=True,
+            operation="Backward<ReduceSum>",
+            creator=[input_f],
+            meta={"axis": axis, "keepdims": keepdims},
+        )
+
+    def backward(self, out_grad):
+        input_f = out_grad.creator[0]
+        axis = out_grad.meta["axis"]
+        expanded_grad = (
+            np.expand_dims(out_grad.grad, axis=axis)
+            if axis is not None
+            else out_grad.grad
+        )
+        grad = np.broadcast_to(expanded_grad, input_f.data.shape)
+        input_f.grad = (
+            handle_broadcasting_and_reshape(input_f, grad)
+            if input_f.grad is None
+            else input_f.grad + handle_broadcasting_and_reshape(input_f, grad)
+        )
+
+
+def reduce_sum(f, axis=None, keepdims=False):
+    return ReduceSum()([f], axis=axis, keepdims=keepdims)
+
+
+class Broadcast(BaseOperationHandler):
+    def forward(self, inputs, shape):
+        from tensor import Tensor
+
+        input_f = inputs[0]
+        data = np.broadcast_to(input_f.data, shape)
+        return Tensor(
+            data=data,
+            retain_grad=True,
+            operation="Backward<Broadcast>",
+            creator=[input_f],
+            meta={"shape": shape},
+        )
+
+    def backward(self, out_grad):
+        input_f = out_grad.creator[0]
+        grad = handle_broadcasting_and_reshape(input_f, out_grad.grad)
+        input_f.grad = grad if input_f.grad is None else input_f.grad + grad
+
+
+def broadcast(f, shape):
+    return Broadcast()([f], shape=shape)
+
+
+class Concat(BaseOperationHandler):
+    def forward(self, inputs, axis=0):
+        from tensor import Tensor
+
+        data = np.concatenate([i.data for i in inputs], axis=axis)
+        return Tensor(
+            data=data,
+            retain_grad=True,
+            operation="Backward<Concat>",
+            creator=inputs,
+            meta={"axis": axis},
+        )
+
+    def backward(self, out_grad):
+        axis = out_grad.meta["axis"]
+        splits = np.split(
+            out_grad.grad,
+            [i.data.shape[axis] for i in out_grad.creator[:-1]],
+            axis=axis,
+        )
+        for i, inp in enumerate(out_grad.creator):
+            inp.grad = splits[i] if inp.grad is None else inp.grad + splits[i]
+
+
+def concat(*args, axis=0):
+    return Concat()(list(args), axis=axis)
+
+
+class Pad(BaseOperationHandler):
+    def forward(self, inputs, pad_width, mode="constant", constant_values=0):
+        from tensor import Tensor
+
+        input_f = inputs[0]
+        data = np.pad(
+            input_f.data, pad_width, mode=mode, constant_values=constant_values
+        )
+        return Tensor(
+            data=data,
+            retain_grad=True,
+            operation="Backward<Pad>",
+            creator=[input_f],
+            meta={"pad_width": pad_width},
+        )
+
+    def backward(self, out_grad):
+        input_f = out_grad.creator[0]
+        slices = tuple(
+            slice(p[0], -p[1] if p[1] > 0 else None) for p in out_grad.meta["pad_width"]
+        )
+        grad = out_grad.grad[slices]
+        input_f.grad = grad if input_f.grad is None else input_f.grad + grad
+
+
+def pad(f, pad_width, mode="constant", constant_values=0):
+    return Pad()([f], pad_width=pad_width, mode=mode, constant_values=constant_values)
