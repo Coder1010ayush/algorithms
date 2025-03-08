@@ -780,3 +780,63 @@ class Pad(BaseOperationHandler):
 
 def pad(f, pad_width, mode="constant", constant_values=0):
     return Pad()([f], pad_width=pad_width, mode=mode, constant_values=constant_values)
+
+
+class Slice(BaseOperationHandler):
+    def forward(self, inputs, key):
+        from tensor import Tensor
+
+        input_f = inputs[0]
+        sliced_data = input_f.data[key]
+        return Tensor(
+            data=sliced_data,
+            retain_grad=True,
+            operation="Backward<Slice>",
+            creator=[input_f],
+            meta={"key": key},
+        )
+
+    def backward(self, out_grad):
+        input_f = out_grad.creator[0]
+        key = out_grad.meta["key"]
+
+        grad = np.zeros_like(input_f.data)
+        grad[key] = out_grad.grad
+        input_f.grad = grad if input_f.grad is None else input_f.grad + grad
+
+
+def slice_tensor(f, key):
+    return Slice()([f], key=key)
+
+
+class SetItem(BaseOperationHandler):
+    def forward(self, inputs, key, value):
+        from tensor import Tensor
+
+        input_f = inputs[0]
+        new_data = input_f.data.copy()
+
+        if isinstance(value, Tensor):
+            value = value.data
+        elif not isinstance(value, np.ndarray):
+            value = np.array(value, dtype=input_f.data.dtype)
+
+        new_data[key] = value
+        return Tensor(
+            data=new_data,
+            retain_grad=True,
+            operation="Backward<SetItem>",
+            creator=[input_f],
+            meta={"key": key},
+        )
+
+    def backward(self, out_grad):
+        input_f = out_grad.creator[0]
+        key = out_grad.meta["key"]
+        grad = np.zeros_like(input_f.data)
+        grad[key] = out_grad.grad[key]
+        input_f.grad = grad if input_f.grad is None else input_f.grad + grad
+
+
+def set_item(f, key, value):
+    return SetItem()([f], key, value)

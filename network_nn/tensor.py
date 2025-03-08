@@ -155,7 +155,6 @@ class Tensor:
         return self.data.dtype
 
     def __getitem__(self, key):
-        # index based slicing on tensor object
         if not isinstance(key, tuple):
             key = (key,)
 
@@ -171,17 +170,9 @@ class Tensor:
         if len(key) < self.ndim:
             key = key + (slice(None),) * (self.ndim - len(key))
 
-        sliced_data = self.data[key]
-        return Tensor(sliced_data, dtype=self.data.dtype, retain_grad=self.retain_grad)
+        return diff.slice_tensor(self, key)
 
     def __setitem__(self, key, value):
-        # index based operation (set or unset values)
-        if isinstance(value, Tensor):
-            value = value.data
-
-        elif not isinstance(value, np.ndarray):
-            value = np.array(value, dtype=self.data.dtype)
-
         if not isinstance(key, tuple):
             key = (key,)
 
@@ -193,10 +184,9 @@ class Tensor:
                 + (slice(None),) * n_missing
                 + key[ellipsis_idx + 1 :]
             )
-
         if len(key) < self.ndim:
             key = key + (slice(None),) * (self.ndim - len(key))
-        self.data[key] = value
+        diff.set_item(self, key, value)
 
     def clip_grad(self, min_val=-1e10, max_val=1e10):
         if self.grad is not None:
