@@ -118,6 +118,7 @@ class Tensor:
         retain_grad=True,
         operation: str = None,
         creator: list = [],
+        meta: dict = None,
     ):
         if data is not None:
             if not check_tensor_type(data):
