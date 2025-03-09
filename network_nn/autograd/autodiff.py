@@ -1136,7 +1136,6 @@ class Conv1D(BaseOperationHandler):
         output_len = (input_data.shape[2] - filter_len) // stride + 1
         output = np.zeros((batch_size, num_filters, output_len))
 
-        # Perform convolution
         for b in range(batch_size):  # Batch dimension
             for f in range(num_filters):  # Filter dimension
                 for i in range(output_len):
@@ -1190,11 +1189,33 @@ class Conv1D(BaseOperationHandler):
                     for c in range(channels):
                         start = i * stride
                         end = start + filter_len
+                        # magic happens for me
+                        # print(filters.data.shape)
                         grad_input_padded[b, c, start:end] += (
-                            filters.data[f, c] * out_grad.grad[b, f, i]
+                            # minor fix
+                            # filters.data[f, c] * out_grad.grad[b, f, i]
+                            filters.data[f, c]
+                            * (
+                                out_grad.grad
+                                if (
+                                    np.isscalar(out_grad.grad)
+                                    or out_grad.grad.shape == ()
+                                )
+                                else out_grad.grad[b, f, i]
+                            )
                         )
                         grad_filters[f, c] += (
-                            input_padded[b, c, start:end] * out_grad.grad[b, f, i]
+                            # minor fix
+                            # input_padded[b, c, start:end] * out_grad.grad[b, f, i]
+                            input_padded[b, c, start:end]
+                            * (
+                                out_grad.grad
+                                if (
+                                    np.isscalar(out_grad.grad)
+                                    or out_grad.grad.shape == ()
+                                )
+                                else out_grad.grad[b, f, i]
+                            )
                         )
 
         if padding == "same":

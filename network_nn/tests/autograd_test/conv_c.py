@@ -52,8 +52,8 @@ def conv3d_type_b():
 
 def compute_gradient_conv():
     test_cases = [
-        # (conv2d_type_a, "conv2d"),
-        # (conv2d_type_b, "conv2d"),
+        (conv2d_type_a, "conv2d"),
+        (conv2d_type_b, "conv2d"),
         (conv1d_type_a, "conv1d"),
         (conv1d_type_b, "conv1d"),
         (conv3d_type_a, "conv3d"),
@@ -65,7 +65,7 @@ def compute_gradient_conv():
         if conv_func == "conv2d":
             z = conv2d(a, b, stride=1)
         elif conv_func == "conv1d":
-            z = conv1d(a, b, stride=2)
+            z = conv1d(a, b, stride=1)
         elif conv_func == "conv3d":
             z = conv3d(a, b, stride=2)
 
