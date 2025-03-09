@@ -823,7 +823,7 @@ class LayerNormalization(BaseOperationHandler):
         return Tensor(
             data=data,
             retain_grad=input_f.retain_grad,
-            operation="Backward<LayerNorm>",
+            operation="Backward<LayerNormalization>",
             creator=[input_f],
         )
 
