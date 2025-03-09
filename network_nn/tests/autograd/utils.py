@@ -79,14 +79,6 @@ def edge_case_9():
     return permuted
 
 
-def edge_case_10():
-    A = torch.randn(3, 3, 3, dtype=torch.float32, requires_grad=True)
-    B = A.permute(1, 2, 0)
-    reshaped = B.view(9)
-    reshaped.retain_grad()
-    return reshaped
-
-
 def generalization_case_1():
     A = torch.randn(3, 4, 5, dtype=torch.float32, requires_grad=True)
     return A.view(4, -1)
@@ -112,7 +104,7 @@ def generalization_case_5():
     return A.view(6, -1)
 
 
-def compute_gradient():
+def compute_gradient_g():
     test_cases = [
         view_test,
         reshape_test,
@@ -124,10 +116,9 @@ def compute_gradient():
         edge_case_4,
         edge_case_5,
         edge_case_6,
-        # edge_case_7,
-        # edge_case_8,
-        # edge_case_9,
-        # edge_case_10,
+        edge_case_7,
+        edge_case_8,
+        edge_case_9,
         generalization_case_1,
         generalization_case_2,
         generalization_case_3,
@@ -151,4 +142,4 @@ def compute_gradient():
 
 
 if __name__ == "__main__":
-    compute_gradient()
+    compute_gradient_g()

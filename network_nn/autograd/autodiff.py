@@ -21,10 +21,19 @@ def sum_axis(input_shape, grad_shape):
 
 
 def handle_broadcasting_and_reshape(input, grad):
+    import numpy as np
+
+    if np.isscalar(grad) or grad.shape == ():
+        grad = np.full(input.data.shape, grad)
+
     if input.data.shape != grad.shape:
         axis = sum_axis(input.data.shape, grad.shape)
         grad = np.sum(grad, axis=axis, keepdims=True)
-        grad = np.reshape(grad, input.data.shape)
+
+        try:
+            grad = np.reshape(grad, input.data.shape)
+        except ValueError:
+            grad = np.squeeze(grad, axis=axis)
     return grad
 
 

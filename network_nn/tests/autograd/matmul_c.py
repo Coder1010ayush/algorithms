@@ -67,7 +67,7 @@ def type_i():
     return A, B
 
 
-def compute_gradient():
+def compute_gradient_matmul():
     for i, tensor_func in enumerate(
         [type_a, type_b, type_c, type_d, type_e, type_f, type_g, type_h, type_i],
         start=1,
@@ -88,4 +88,4 @@ def compute_gradient():
 
 
 if __name__ == "__main__":
-    compute_gradient()
+    compute_gradient_matmul()
