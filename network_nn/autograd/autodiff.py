@@ -20,9 +20,53 @@ def sum_axis(input_shape, grad_shape):
     return axis
 
 
-def handle_broadcasting_and_reshape(input, grad):
-    import numpy as np
+# Broadcasting Rules:
+# 1. Align Shapes from Right:
+#    - Broadcasting compares shapes element-wise starting from the rightmost dimension.
+#    - Example:
+#         Shape A:      (3, 4)
+#         Shape B:          (4)
+#      Valid broadcast because dimensions align from the right.
 
+# 2. Dimension Compatibility:
+#    - Two dimensions are compatible if:
+#      a. They are equal, or
+#      b. One of them is 1.
+#    - Example:
+#         Shape A: (5, 3, 4)
+#         Shape B:      (1, 4)
+#      Result:     (5, 3, 4) - Valid broadcast due to rule (b).
+
+# 3. Expand Missing Dimensions:
+#    - If a tensor has fewer dimensions, prepend 1s to match the other tensor's shape.
+#    - Example:
+#         Shape A: (4, 3)
+#         Shape B:    (3)
+#      Interpreted as:
+#         Shape A: (4, 3)
+#         Shape B: (1, 3) - Expanded shape
+
+# 4. Output Shape Determination:
+#    - The output shape is the maximum size along each dimension.
+#    - Example:
+#         Shape A: (5, 1, 4)
+#         Shape B:    (3, 1)
+#      Result:     (5, 3, 4)
+
+# 5. Broadcasting Fails When:
+#    - A dimension is neither 1 nor equal between tensors.
+#    - Example:
+#         Shape A: (3, 4)
+#         Shape B: (2, 4)
+#      Error: Incompatible shapes.
+
+# Summary:
+#    - Right-align shapes, use 1 as a flexible dimension.
+#    - Expand or replicate dimensions with 1 to match the larger shape.
+#    - If any dimension is incompatible, broadcasting raises an error.
+
+
+def handle_broadcasting_and_reshape(input, grad):
     if np.isscalar(grad) or grad.shape == ():
         grad = np.full(input.data.shape, grad)
 
@@ -33,7 +77,9 @@ def handle_broadcasting_and_reshape(input, grad):
         try:
             grad = np.reshape(grad, input.data.shape)
         except ValueError:
-            grad = np.squeeze(grad, axis=axis)
+            grad = np.squeeze(
+                grad, axis=axis
+            )  # quite forward (does not need to explaination)
     return grad
 
 
@@ -559,6 +605,42 @@ class ReLU(BaseOperationHandler):
 
 def relu(f):
     return ReLU()(f)
+
+
+class LeakyRELU(BaseOperationHandler):
+
+    def forward(self, inputs):
+        from tensor import Tensor
+
+        input_f = inputs[0]
+        alpha = inputs[1]
+
+        data = np.maximum(alpha * input_f.data, input_f.data)
+        return Tensor(
+            data=data,
+            retain_grad=input_f.retain_grad,
+            operation="Backward<LeakyRELU>",
+            creator=[input_f],
+            meta={"alpha": alpha},
+        )
+
+    def backward(self, out_grad):
+        input_f = out_grad.creator[0]
+        alpha = input_f.meta["alpha"]
+        grad = out_grad.grad
+
+        local_grad = np.where(input_f.data > 0, 1, alpha)
+        grad = grad * local_grad
+
+        input_f.grad = (
+            handle_broadcasting_and_reshape(input_f, grad)
+            if input_f.grad is None
+            else input_f.grad + handle_broadcasting_and_reshape(input_f, grad)
+        )
+
+
+def leaky_relu(f, alpha=0.1):
+    return LeakyRELU()(f, alpha)
 
 
 class Sigmoid(BaseOperationHandler):
