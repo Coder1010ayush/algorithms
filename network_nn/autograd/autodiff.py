@@ -615,6 +615,34 @@ def cos(f):
     return Cos()(f)
 
 
+class Tan(BaseOperationHandler):
+
+    def forward(self, inputs):
+        from tensor import Tensor
+
+        input_f = inputs[0]
+        data = np.tan(input_f.data)
+        return Tensor(
+            data=data,
+            retain_grad=input_f.retain_grad,
+            operation="Backward<Tan>",
+            creator=[input_f],
+        )
+
+    def backward(self, out_grad):
+        input_f = out_grad.creator[0]
+        grad = out_grad.grad * (1 / np.cos(input_f.data))
+        input_f.grad = (
+            handle_broadcasting_and_reshape(input_f, grad)
+            if input_f.grad is None
+            else input_f.grad + handle_broadcasting_and_reshape(input_f, grad)
+        )
+
+
+def tan(f):
+    return Tan()(f)
+
+
 class Sqrt(BaseOperationHandler):
     def forward(self, inputs):
         from tensor import Tensor
@@ -725,6 +753,37 @@ class Sigmoid(BaseOperationHandler):
 
 def sigmoid(f):
     return Sigmoid()(f)
+
+
+class Swish(BaseOperationHandler):
+    def forward(self, inputs):
+        from tensor import Tensor
+
+        input_f = inputs[0]
+        data = input_f.data * (1 / (1 + np.exp(-input_f.data)))
+        return Tensor(
+            data=data,
+            retain_grad=input_f.retain_grad,
+            operation="Backward<Swish>",
+            creator=[input_f],
+        )
+
+    def backward(self, out_grad):
+        input_f = out_grad.creator[0]
+        sigmoid_out = 1 / (1 + np.exp(-input_f.data))
+        grad = (
+            sigmoid_out + input_f.data * sigmoid_out * (1 - sigmoid_out)
+        ) * out_grad.grad
+
+        input_f.grad = (
+            handle_broadcasting_and_reshape(input_f, grad)
+            if input_f.grad is None
+            else input_f.grad + handle_broadcasting_and_reshape(input_f, grad)
+        )
+
+
+def swish(f):
+    return Swish()(f)
 
 
 class Tanh(BaseOperationHandler):
