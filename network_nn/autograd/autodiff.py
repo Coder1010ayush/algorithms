@@ -559,6 +559,62 @@ def exp(f):
     return Exp()(f)
 
 
+class Sin(BaseOperationHandler):
+
+    def forward(self, inputs):
+        input_f = inputs[0]
+        from tensor import Tensor
+
+        data = np.sin(input_f.data)
+        return Tensor(
+            data=data,
+            retain_grad=input_f.retain_grad,
+            operation="Backward<Sin>",
+            creator=[input_f],
+        )
+
+    def backward(self, out_grad):
+        input_f = out_grad.creator[0]
+        grad = out_grad.grad * np.cos(input_f.data)
+        input_f.grad = (
+            handle_broadcasting_and_reshape(input_f, grad)
+            if input_f.grad is None
+            else input_f.grad + handle_broadcasting_and_reshape(input_f, grad)
+        )
+
+
+def sin(f):
+    return Sin()(f)
+
+
+class Cos(BaseOperationHandler):
+
+    def forward(self, inputs):
+        input_f = inputs[0]
+        from tensor import Tensor
+
+        data = np.cos(input_f.data)
+        return Tensor(
+            data=data,
+            retain_grad=input_f.retain_grad,
+            operation="Backward<Cos>",
+            creator=[input_f],
+        )
+
+    def backward(self, out_grad):
+        input_f = out_grad.creator[0]
+        grad = -out_grad.grad * np.sin(input_f.data)
+        input_f.grad = (
+            handle_broadcasting_and_reshape(input_f, grad)
+            if input_f.grad is None
+            else input_f.grad + handle_broadcasting_and_reshape(input_f, grad)
+        )
+
+
+def cos(f):
+    return Cos()(f)
+
+
 class Sqrt(BaseOperationHandler):
     def forward(self, inputs):
         from tensor import Tensor
