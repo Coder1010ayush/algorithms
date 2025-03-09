@@ -810,6 +810,46 @@ def tanh(f):
     return Tanh()(f)
 
 
+class LayerNormalization(BaseOperationHandler):
+
+    def forward(self, inputs):
+        input_f = inputs[0]
+        mu = np.mean(input_f.data)
+        variaence = np.var(input_f.data)
+        ep = 1e-8
+        data = (input_f.data - mu) / (np.sqrt(variaence**2 + ep))
+        from tensor import Tensor
+
+        return Tensor(
+            data=data,
+            retain_grad=input_f.retain_grad,
+            operation="Backward<LayerNorm>",
+            creator=[input_f],
+        )
+
+    def backward(self, out_grad):
+        input_f = out_grad.creator[0]
+        N = input_f.data.size
+        std_inv = 1.0 / np.sqrt(self.variance + self.ep)
+
+        dnorm = out_grad.grad
+        # magic happens here
+        dvar = np.sum(dnorm * (input_f.data - self.mu) * -0.5 * std_inv**3, axis=0)
+        dmu = np.sum(dnorm * -std_inv, axis=0) + dvar * np.mean(
+            -2.0 * (input_f.data - self.mu), axis=0
+        )
+        grad = (dnorm * std_inv) + (dvar * 2 * (input_f.data - self.mu) / N) + (dmu / N)
+        input_f.grad = (
+            handle_broadcasting_and_reshape(input_f, grad)
+            if input_f.grad is None
+            else input_f.grad + handle_broadcasting_and_reshape(input_f, grad)
+        )
+
+
+def layer_norm(f):
+    return LayerNormalization()(f)
+
+
 class Softmax(BaseOperationHandler):
     def forward(self, inputs, axis=-1):
         from tensor import Tensor
