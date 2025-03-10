@@ -1,9 +1,10 @@
 # -------------------------------------- utf-8 encoding -----------------------------------------
 # this file contains kinds of layers test cases that are implemented here
+import numpy as np
 from tensor import Tensor
 from initializer_w import Initializer
 from layers.models import Linear
-from optimizer.optim import GradientOptimiser
+from optimizer.optim import GradientOptimiser, AdamOptimizer
 from layers.module import Module
 from autograd.autodiff import mse
 
@@ -39,21 +40,17 @@ class LinearModel(Module):
 if __name__ == "__main__":
     # defining input data for this
     init_w = Initializer()
-    x = init_w.forward(shape=(50, 5), init_type="random", retain_grad=True, meta=None)
-    y = init_w.forward(shape=(50, 1), init_type="random", retain_grad=True, meta=None)
+    x = np.linspace(-10, 10, 50).reshape(-1, 1)
+    # noise = np.random.normal(0, 2, size=x.shape)
+    y = (3 * x + 2).reshape(-1, 1)
+    x = Tensor(data=x, retain_grad=True)
+    y = Tensor(data=y, retain_grad=True)
 
-    model = LinearModel()
-    optimiser = GradientOptimiser(param=model.parameters())
-    for epoch in range(20):
+    model = LinearModel(in_features=1)
+    optimiser = AdamOptimizer(lr=0.001)
+    for epoch in range(2000):
         out = model(x)
         loss = mse(predictions=out, targets=y)
         loss.backprop()
         print(f"Loss at Epoch {epoch} is : {loss}")
-        optimiser.step()
-
-    # for name, param in model.named_parameters():
-    #     print(f"Parameter name: {name}")
-    #     # print("Value:\n", param["value"])
-    #     # print("Gradient:\n", param["grad"])
-    #     # print("-" * 50)
-    #     print(param)
+        optimiser.step(params=model.parameters())
