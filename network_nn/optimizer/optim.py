@@ -176,3 +176,72 @@ class AdaDeltaOptimizer(BaseOptimiser):
 
             self.Edx[idx] = self.rho * self.Edx[idx] + (1 - self.rho) * (dx**2)
             param.data += dx
+
+
+class NadamOptimizer(BaseOptimiser):
+    def __init__(self, lr=0.001, beta1=0.9, beta2=0.999, epsilon=1e-8):
+        super().__init__(lr)
+        self.beta1 = beta1
+        self.beta2 = beta2
+        self.epsilon = epsilon
+        self.m = {}
+        self.v = {}
+        self.t = 0
+
+    def zero_grad(self, params):
+        for param in params:
+            if param.grad is not None:
+                param.grad = np.zeros_like(param.grad)
+
+    def step(self, params):
+        self.t += 1
+        for idx, param in enumerate(params):
+            if param.grad is None:
+                continue
+
+            if idx not in self.m:
+                self.m[idx] = np.zeros_like(param.grad)
+                self.v[idx] = np.zeros_like(param.grad)
+
+            self.m[idx] = self.beta1 * self.m[idx] + (1 - self.beta1) * param.grad
+            self.v[idx] = self.beta2 * self.v[idx] + (1 - self.beta2) * (param.grad**2)
+
+            # Bias-corrected first moment estimate
+            m_hat = self.m[idx] / (1 - self.beta1**self.t)
+            # Bias-corrected second raw moment estimate
+            v_hat = self.v[idx] / (1 - self.beta2**self.t)
+
+            # Nesterov update
+            nesterov_m = self.beta1 * m_hat + (1 - self.beta1) * param.grad
+            param.data -= self.lr * nesterov_m / (np.sqrt(v_hat) + self.epsilon)
+
+
+class NAGOptimizer(BaseOptimiser):
+    def __init__(self, lr=0.01, momentum=0.9):
+        super().__init__(lr)
+        self.momentum = momentum
+        self.velocity = {}
+
+    def zero_grad(self, params):
+        for param in params:
+            if param.grad is not None:
+                param.grad = np.zeros_like(param.grad)
+
+    def step(self, params):
+        for idx, param in enumerate(params):
+            if param.grad is None:
+                continue
+
+            if idx not in self.velocity:
+                self.velocity[idx] = np.zeros_like(param.grad)
+
+            lookahead_param = param.data - self.momentum * self.velocity[idx]
+            original_param = param.data
+            param.data = lookahead_param
+
+            lookahead_grad = param.grad
+            param.data = original_param
+            self.velocity[idx] = (
+                self.momentum * self.velocity[idx] + self.lr * lookahead_grad
+            )
+            param.data -= self.velocity[idx]
