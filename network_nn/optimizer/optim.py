@@ -69,3 +69,53 @@ class AdamOptimizer(BaseOptimiser):
 
             # Update parameters
             param.data -= self.lr * m_hat / (np.sqrt(v_hat) + self.epsilon)
+
+
+class SGDOptimizer(BaseOptimiser):
+    def __init__(self, lr=0.01, momentum=0.0):
+        super().__init__(lr)
+        self.momentum = momentum
+        self.velocity = {}
+
+    def zero_grad(self, params):
+        for param in params:
+            if param.grad is not None:
+                param.grad = np.zeros_like(param.grad)
+
+    def step(self, params):
+        for idx, param in enumerate(params):
+            if param.grad is None:
+                continue
+
+            if idx not in self.velocity:
+                self.velocity[idx] = np.zeros_like(param.grad)
+
+            # Update velocity and parameters
+            self.velocity[idx] = (
+                self.momentum * self.velocity[idx] + self.lr * param.grad
+            )
+            param.data -= self.velocity[idx]
+
+
+class RMSPropOptimizer(BaseOptimiser):
+    def __init__(self, lr=0.001, beta=0.9, epsilon=1e-8):
+        super().__init__(lr)
+        self.beta = beta
+        self.epsilon = epsilon
+        self.s = {}
+
+    def zero_grad(self, params):
+        for param in params:
+            if param.grad is not None:
+                param.grad = np.zeros_like(param.grad)
+
+    def step(self, params):
+        for idx, param in enumerate(params):
+            if param.grad is None:
+                continue
+
+            if idx not in self.s:
+                self.s[idx] = np.zeros_like(param.grad)
+
+            self.s[idx] = self.beta * self.s[idx] + (1 - self.beta) * (param.grad**2)
+            param.data -= self.lr * param.grad / (np.sqrt(self.s[idx]) + self.epsilon)
