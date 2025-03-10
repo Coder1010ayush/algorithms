@@ -119,3 +119,60 @@ class RMSPropOptimizer(BaseOptimiser):
 
             self.s[idx] = self.beta * self.s[idx] + (1 - self.beta) * (param.grad**2)
             param.data -= self.lr * param.grad / (np.sqrt(self.s[idx]) + self.epsilon)
+
+
+class AdaGradOptimizer(BaseOptimiser):
+    def __init__(self, lr=0.01, epsilon=1e-8):
+        super().__init__(lr)
+        self.epsilon = epsilon
+        self.s = {}
+
+    def zero_grad(self, params):
+        for param in params:
+            if param.grad is not None:
+                param.grad = np.zeros_like(param.grad)
+
+    def step(self, params):
+        for idx, param in enumerate(params):
+            if param.grad is None:
+                continue
+
+            if idx not in self.s:
+                self.s[idx] = np.zeros_like(param.grad)
+
+            self.s[idx] += param.grad**2
+            param.data -= self.lr * param.grad / (np.sqrt(self.s[idx]) + self.epsilon)
+
+
+class AdaDeltaOptimizer(BaseOptimiser):
+    def __init__(self, lr=1.0, rho=0.95, epsilon=1e-6):
+        super().__init__(lr)
+        self.rho = rho
+        self.epsilon = epsilon
+        self.Eg = {}
+        self.Edx = {}
+
+    def zero_grad(self, params):
+        for param in params:
+            if param.grad is not None:
+                param.grad = np.zeros_like(param.grad)
+
+    def step(self, params):
+        for idx, param in enumerate(params):
+            if param.grad is None:
+                continue
+
+            if idx not in self.Eg:
+                self.Eg[idx] = np.zeros_like(param.grad)
+                self.Edx[idx] = np.zeros_like(param.grad)
+
+            self.Eg[idx] = self.rho * self.Eg[idx] + (1 - self.rho) * (param.grad**2)
+
+            dx = (
+                -np.sqrt(self.Edx[idx] + self.epsilon)
+                / np.sqrt(self.Eg[idx] + self.epsilon)
+                * param.grad
+            )
+
+            self.Edx[idx] = self.rho * self.Edx[idx] + (1 - self.rho) * (dx**2)
+            param.data += dx
