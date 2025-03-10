@@ -153,4 +153,13 @@ optimizer = AdamOptimizer(lr=0.001)
 optimizer.zero_grad(params)
 optimizer.step(params)
 ```
+## Tips for Choosing Optimizers
+- **SGD:** Simple and effective for large datasets.  
+- **Momentum:** Helps overcome local minima efficiently.  
+- **NAG:** Better than Momentum for oscillatory terrains.  
+- **Adagrad:** Good for sparse data but suffers from aggressive decay.  
+- **Adadelta & RMSProp:** Improve on Adagrad’s decay issue.  
+- **Adam:** Most popular choice due to adaptive learning rates.  
+- **Nadam:** Ideal for tasks needing both momentum and lookahead capabilities.
+
 
