@@ -727,6 +727,41 @@ def leaky_relu(f, alpha=0.1):
     return LeakyRELU()(f, alpha)
 
 
+class MSE(BaseOperationHandler):
+    def forward(self, inputs):
+        from tensor import Tensor
+
+        predictions, targets = inputs
+        data = np.mean((predictions.data - targets.data) ** 2)
+        return Tensor(
+            data=data,
+            retain_grad=True,
+            operation="Backward<MSE>",
+            creator=[predictions, targets],
+        )
+
+    def backward(self, out_grad):
+        predictions, targets = out_grad.creator
+        grad = (2 * (predictions.data - targets.data)) / targets.data.size
+        predictions.grad = (
+            handle_broadcasting_and_reshape(predictions, grad * out_grad.grad)
+            if predictions.grad is None
+            else predictions.grad
+            + handle_broadcasting_and_reshape(predictions, grad * out_grad.grad)
+        )
+        if targets.retain_grad:
+            targets.grad = (
+                handle_broadcasting_and_reshape(targets, -grad * out_grad.grad)
+                if targets.grad is None
+                else targets.grad
+                + handle_broadcasting_and_reshape(targets, -grad * out_grad.grad)
+            )
+
+
+def mse(predictions, targets):
+    return MSE()(predictions, targets)
+
+
 class Sigmoid(BaseOperationHandler):
     def forward(self, inputs):
         from tensor import Tensor

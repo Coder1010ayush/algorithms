@@ -37,6 +37,9 @@ class Linear(Module):
         self.shape = (in_feature, out_feature)
         self.__init_w(shape=self.shape, meta=self.meta)
 
+        self.register_parameter(name="weight", param=self.weight)
+        self.register_parameter(name="bias", param=self.bias)
+
     def __init_w(self, shape, meta):
         self.weight = self.initializer.forward(
             shape=shape,

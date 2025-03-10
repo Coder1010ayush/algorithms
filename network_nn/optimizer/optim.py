@@ -36,12 +36,10 @@ class GradientOptimiser(BaseOptimiser):
         super().__init__(param, lr)
 
     def zero_grad(self):
-
         for param in self.param:
-            if param["grad"] is not None:
-                param["grad"] = np.ones(param["grad"])
+            if param.grad is not None:
+                param.grad = np.ones(param.grad)
 
     def step(self):
         for param in self.param:
-            if param["grad"] is not None:
-                param["grad"] -= self.lr * param["grad"]
+            param.data -= self.lr * param.grad
