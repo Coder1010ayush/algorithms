@@ -5,6 +5,7 @@ from layers.module import Module, Sequential
 from tensor import Tensor
 import numpy as np
 from autograd.autodiff import relu, sigmoid, tanh, concat as cat
+from autograd.autodiff import conv1d, conv2d, conv3d
 
 
 class Linear(Module):
@@ -88,6 +89,9 @@ class Embedding(Module):
     def __repr__(self) -> str:
         strg = f"nn.Embedding{self.weight.data.shape}"
         return strg
+
+
+# ----------------------------------------------------------------------- Rnn , Gru and lstm layer is implemented below ---------------------------------------------------
 
 
 class RNNCell(Module):
@@ -443,3 +447,142 @@ class Residual(Module):
     def forward(self, x: Tensor):
         out = x + self.fn(x)
         return out
+
+
+# ---------------------------- conv layer is implemented below ------------------------------------------------------------------
+class Conv1DLayer(Module):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        kernel_size,
+        stride=1,
+        padding="valid",
+        bias=True,
+    ):
+        super().__init__()
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.kernel_size = kernel_size
+        self.stride = stride
+        self.padding = padding
+        self.bias = bias
+
+        self.initializer = Initializer()
+        self.filters = self.initializer.lecun_uniform(
+            shape=(out_channels, in_channels, kernel_size),
+            retain_grad=True,
+            n_in=in_channels,
+        )
+
+        if bias:
+            self.bias_param = self.initializer.lecun_uniform(
+                shape=(1, out_channels, 1), retain_grad=True, n_in=out_channels
+            )
+            self.register_parameter("bias", self.bias_param)
+
+        self.register_parameter("filters", self.filters)
+
+    def forward(self, x):
+        output = conv1d(x, self.filters, stride=self.stride, padding=self.padding)
+        if self.bias:
+            output.data += self.bias_param.data
+        return output
+
+    def __repr__(self):
+        return (
+            f"Conv1DLayer(in_channels={self.in_channels}, out_channels={self.out_channels}, "
+            f"kernel_size={self.kernel_size}, stride={self.stride}, padding='{self.padding}', bias={self.bias})"
+        )
+
+
+class Conv2DLayer(Module):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        kernel_size,
+        stride=1,
+        padding="valid",
+        bias=True,
+    ):
+        super().__init__()
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.kernel_size = kernel_size
+        self.stride = stride
+        self.padding = padding
+        self.bias = bias
+
+        self.initializer = Initializer()
+        self.filters = self.initializer.lecun_uniform(
+            shape=(out_channels, in_channels, kernel_size, kernel_size),
+            retain_grad=True,
+            n_in=in_channels,
+        )
+
+        if bias:
+            self.bias_param = self.initializer.lecun_uniform(
+                shape=(1, out_channels, 1, 1), retain_grad=True, n_in=out_channels
+            )
+            self.register_parameter("bias", self.bias_param)
+
+        self.register_parameter("filters", self.filters)
+
+    def forward(self, x):
+        output = conv2d(x, self.filters, stride=self.stride, padding=self.padding)
+        if self.bias:
+            output.data += self.bias_param.data
+        return output
+
+    def __repr__(self):
+        return (
+            f"Conv2DLayer(in_channels={self.in_channels}, out_channels={self.out_channels}, "
+            f"kernel_size={self.kernel_size}, stride={self.stride}, padding='{self.padding}', bias={self.bias})"
+        )
+
+
+class Conv3DLayer(Module):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        kernel_size,
+        stride=1,
+        padding="valid",
+        bias=True,
+    ):
+        super().__init__()
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.kernel_size = kernel_size
+        self.stride = stride
+        self.padding = padding
+        self.bias = bias
+
+        self.initializer = Initializer()
+        self.filters = self.initializer.lecun_uniform(
+            shape=(out_channels, in_channels, kernel_size, kernel_size, kernel_size),
+            retain_grad=True,
+            n_in=in_channels,
+        )
+
+        if bias:
+            self.bias_param = self.initializer.lecun_uniform(
+                shape=(1, out_channels, 1, 1, 1), retain_grad=True, n_in=out_channels
+            )
+            self.register_parameter("bias", self.bias_param)
+
+        self.register_parameter("filters", self.filters)
+
+    def forward(self, x):
+        output = conv3d(x, self.filters, stride=self.stride, padding=self.padding)
+        if self.bias:
+            output.data += self.bias_param.data
+        return output
+
+    def __repr__(self):
+        return (
+            f"Conv3DLayer(in_channels={self.in_channels}, out_channels={self.out_channels}, "
+            f"kernel_size={self.kernel_size}, stride={self.stride}, padding='{self.padding}', bias={self.bias})"
+        )
