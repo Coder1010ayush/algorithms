@@ -1,5 +1,6 @@
 # ------------------------ utf-8 encoding ----------------------------------------
 import numpy as np
+from torch import Tensor
 
 
 class Module:
@@ -76,3 +77,39 @@ class Module:
             yield name, module
             for sub_name, sub_module in module.named_modules():
                 yield f"{name}.{sub_name}", sub_module
+
+
+class Sequential(Module):
+    """
+    A general sequential class which will be used for any kind of layer that will be
+    defined in nn module
+    """
+
+    def __init__(self, *layers):
+        super().__init__()
+        self.layers = layers
+
+    def forward(self, x: Tensor):
+        for layer in self.layers:
+            x = layer(x)
+        return x
+
+    def parameters(self):
+        for layer in self.layers:
+            yield from layer.parameters()
+
+    # def train(self):
+    #     self.training = True
+    #     for layer in self.layers:
+    #         layer.train()
+
+    # def eval(self):
+    #     self.training = False
+    #     for layer in self.layers:
+    #         layer.eval()
+
+    def __repr__(self) -> str:
+        strg = ""
+        for layer in self.layers:
+            strg += repr(layer) + ",\n"
+        return strg
