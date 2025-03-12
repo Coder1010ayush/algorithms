@@ -142,71 +142,71 @@ Challenge: Maintaining top-tree properties dynamically as nodes are added or rem
 
 # Supervised Learning Algorithms
 
-Linear Regression
+Linear Regression ✅
 
-Logistic Regression
+Logistic Regression ✅
 
-k-Nearest Neighbors (k-NN)
+k-Nearest Neighbors (k-NN) ✅
 
-Support Vector Machine (SVM)
+Support Vector Machine (SVM) ✅
 
-Naive Bayes Classifier
+Naive Bayes Classifier ✅
 
-Decision Tree Classifier
+Decision Tree Classifier ✅
 
-Random Forest Classifier
+Random Forest Classifier ✅
 
-Gradient Boosting Machines (GBM)
+Gradient Boosting Machines (GBM) ✅
 
-AdaBoost
+AdaBoost ✅
 
-XGBoost
+XGBoost ✅
 
-LightGBM
+LightGBM 
 
 CatBoost
 
-Perceptron
+Perceptron ✅
 
-Artificial Neural Network (ANN)
+Artificial Neural Network (ANN) ✅
 
-Convolutional Neural Network (CNN)
+Convolutional Neural Network (CNN) ✅
 
-Recurrent Neural Network (RNN)
+Recurrent Neural Network (RNN) ✅
 
-Long Short-Term Memory (LSTM)
+Long Short-Term Memory (LSTM) ✅
 
-Bidirectional LSTM
+Bidirectional LSTM ✅
 
-GRU (Gated Recurrent Unit)
+GRU (Gated Recurrent Unit) ✅
 
 Transformer Models
 
-Multi-Layer Perceptron (MLP)
+Multi-Layer Perceptron (MLP) ✅
 
-Ridge Regression
+Ridge Regression ✅
 
-Lasso Regression
+Lasso Regression ✅
 
-Elastic Net Regression
+Elastic Net Regression ✅
 
-Polynomial Regression
+Polynomial Regression ✅
 
 Quantile Regression
 
-Stochastic Gradient Descent (SGD)
+Stochastic Gradient Descent (SGD) ✅
 
 # Unsupervised Learning Algorithms
 
-k-Means Clustering
+k-Means Clustering ✅
 
-Hierarchical Clustering
+Hierarchical Clustering ✅
 
 DBSCAN (Density-Based Spatial Clustering)
 
-Gaussian Mixture Model (GMM)
+Gaussian Mixture Model (GMM) ✅
 
-Principal Component Analysis (PCA)
+Principal Component Analysis (PCA) ✅
 
 Independent Component Analysis (ICA)
 
@@ -259,18 +259,18 @@ Monte Carlo Tree Search (MCTS)
 
 # Ensemble Learning Algorithms
 
-Bagging
+Bagging ✅
 
-Boosting (Gradient Boosting, AdaBoost)
+Boosting (Gradient Boosting, AdaBoost) ✅
 
-Stacking
+Stacking ✅
 
 Voting Classifier
-Blending
+Blending ✅
 
 Dimensionality Reduction Algorithms
 
-Principal Component Analysis (PCA)
+Principal Component Analysis (PCA) ✅
 
 Linear Discriminant Analysis (LDA)
 
@@ -280,7 +280,7 @@ UMAP
 
 Singular Value Decomposition (SVD)
 
-Clustering Algorithms (for Specific Purposes)
+Clustering Algorithms (for Specific Purposes) ✅
 
 Affinity Propagation
 
