@@ -54,4 +54,5 @@ int main()
     // int res = find_total_cost(number_of_houses, costs, 0);
     int res = find_total_cost_memo(number_of_houses, costs, 0);
     printf("Total earned profit is %d ", res);
+    return 0;
 }
