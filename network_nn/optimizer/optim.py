@@ -9,6 +9,9 @@ import random
 class BaseOptimiser:
     def __init__(self, lr: float = 1e-4):
         self.lr = lr
+    
+    def __set_lr(self , lr):
+        self.lr = lr
 
     def zero_grad(self, params):
         raise NotImplementedError("zero_grad is not implemented for this optimiser.")

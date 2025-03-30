@@ -29,7 +29,7 @@ class LinearModel(Module):
             init_type=self.init_type,
             meta=self.meta,
         )
-        self.add_module("linear", self.linear)
+        # self.add_module("linear", self.linear)
 
     def forward(self, x: Tensor):
 
