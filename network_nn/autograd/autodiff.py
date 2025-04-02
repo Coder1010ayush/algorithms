@@ -1473,7 +1473,6 @@ class Conv3D(BaseOperationHandler):
                                     segment * filter_data[f, c]
                                 )
         from tensor import Tensor
-
         return Tensor(
             data=output,
             retain_grad=True,
@@ -1551,3 +1550,113 @@ class Conv3D(BaseOperationHandler):
 
 def conv3d(f, filters, stride=1, padding="valid"):
     return Conv3D()(f, filters, stride, padding)
+
+
+
+class Conv3DOptimized(BaseOperationHandler):
+    def im3col(self, input_data, filter_shape, stride):
+        batch_size, channels, input_d, input_h, input_w = input_data.shape
+        filter_d, filter_h, filter_w = filter_shape
+
+        output_d = (input_d - filter_d) // stride + 1
+        output_h = (input_h - filter_h) // stride + 1
+        output_w = (input_w - filter_w) // stride + 1
+
+        col = np.zeros((batch_size, channels, filter_d, filter_h, filter_w, output_d, output_h, output_w))
+
+        for d in range(filter_d):
+            for i in range(filter_h):
+                for j in range(filter_w):
+                    col[:, :, d, i, j, :, :, :] = input_data[
+                        :, :, d : d + output_d * stride : stride,
+                        i : i + output_h * stride : stride,
+                        j : j + output_w * stride : stride
+                    ]
+
+        return col.reshape(batch_size, -1, output_d * output_h * output_w)
+
+    def forward(self, inputs):
+        input_f = inputs[0]
+        filters = inputs[1]
+        stride = inputs[2]
+        padding = inputs[3]
+        input_data = input_f.data
+        filter_data = filters.data
+
+        batch_size, channels, input_d, input_h, input_w = input_data.shape
+        num_filters, _, filter_d, filter_h, filter_w = filter_data.shape
+
+        if padding == "same":
+            pad_d = (filter_d - 1) // 2
+            pad_h = (filter_h - 1) // 2
+            pad_w = (filter_w - 1) // 2
+            input_data = np.pad(
+                input_data,
+                ((0, 0), (0, 0), (pad_d, pad_d), (pad_h, pad_h), (pad_w, pad_w)),
+                mode="constant",
+            )
+        elif padding != "valid":
+            raise ValueError("Padding must be 'same' or 'valid'.")
+
+        col_input = self.im3col(input_data, (filter_d, filter_h, filter_w), stride)
+        col_filters = filter_data.reshape(num_filters, -1)
+
+        output = np.tensordot(col_filters, col_input, axes=([1], [1]))
+        output = output.transpose(1, 0, 2).reshape(batch_size, num_filters, 
+                    (input_d - filter_d) // stride + 2,
+                    (input_h - filter_h) // stride + 2,
+                    (input_w - filter_w) // stride + 2)
+        from tensor import Tensor
+        return Tensor(
+            data=output,
+            retain_grad=True,
+            operation="Backward<Conv3D>",
+            creator=[input_f, filters],
+            meta={
+                "input_shape": input_f.data.shape,
+                "filter_shape": filter_data.shape,
+                "stride": stride,
+                "padding": padding,
+            },
+        )
+
+    def backward(self, out_grad):
+        input_f, filters = out_grad.creator
+        input_data = input_f.data
+        filter_data = filters.data
+        stride = out_grad.meta["stride"]
+        padding = out_grad.meta["padding"]
+
+        batch_size, channels, input_d, input_h, input_w = input_data.shape
+        num_filters, _, filter_d, filter_h, filter_w = filter_data.shape
+
+        if padding == "same":
+            pad_d = (filter_d - 1) // 2
+            pad_h = (filter_h - 1) // 2
+            pad_w = (filter_w - 1) // 2
+            input_data = np.pad(
+                input_data,
+                ((0, 0), (0, 0), (pad_d, pad_d), (pad_h, pad_h), (pad_w, pad_w)),
+                mode="constant",
+            )
+
+        col_input = self.im3col(input_data, (filter_d, filter_h, filter_w), stride)
+        col_out_grad = out_grad.data.reshape(batch_size, num_filters, -1)
+
+        grad_filters = np.tensordot(col_out_grad, col_input, axes=([0, 2], [0, 2]))
+        grad_filters = grad_filters.reshape(num_filters, channels, filter_d, filter_h, filter_w)
+
+        col_filters = filter_data.reshape(num_filters, -1)
+        grad_input_col = np.tensordot(col_filters.T, col_out_grad, axes=([1], [1]))
+        grad_input_col = grad_input_col.transpose(1, 0, 2).reshape(input_data.shape)
+
+        if padding == "same":
+            grad_input_col = grad_input_col[:, :, pad_d:-pad_d, pad_h:-pad_h, pad_w:-pad_w]
+
+        input_f.grad = grad_input_col if input_f.grad is None else input_f.grad + grad_input_col
+        filters.grad = grad_filters if filters.grad is None else filters.grad + grad_filters
+
+
+def conv3d_optimised(f, filters, stride=1, padding="same"):
+    return Conv3DOptimized()(f, filters, stride, padding)
+

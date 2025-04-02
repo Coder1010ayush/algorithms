@@ -1,5 +1,5 @@
 import numpy as np
-from tensor import Tensor  # Assuming you have a custom Tensor class
+from tensor import Tensor 
 
 class Initializer:
     def __init__(self):
@@ -100,7 +100,7 @@ class Initializer:
         fan_in, fan_out = Initializer._calculate_fan_in_out(shape)
         return fan_in if mode == 'fan_in' else fan_out
 
-shape = (128, 64)
-Initializer.xavier_uniform(shape)
-x = Initializer.kaiming_normal((64, 32), a=0.01, mode='fan_in', nonlinearity='relu')
-print(x)
+# shape = (128, 64)
+# Initializer.xavier_uniform(shape)
+# x = Initializer.kaiming_normal((64, 32), a=0.01, mode='fan_in', nonlinearity='relu')
+# print(x)

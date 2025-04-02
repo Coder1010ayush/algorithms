@@ -5,7 +5,7 @@ from layers.module import Module, Sequential
 from tensor import Tensor
 import numpy as np
 from autograd.autodiff import relu, sigmoid, tanh, concat as cat
-from autograd.autodiff import conv1d, conv2d, conv3d
+from autograd.autodiff import conv1d, conv2d, conv3d , conv3d_optimised
 
 
 class Linear(Module):
@@ -576,7 +576,7 @@ class Conv3DLayer(Module):
         self.register_parameter("filters", self.filters)
 
     def forward(self, x):
-        output = conv3d(x, self.filters, stride=self.stride, padding=self.padding)
+        output = conv3d_optimised(x, self.filters, stride=self.stride, padding=self.padding)
         if self.bias:
             output.data += self.bias_param.data
         return output
