@@ -8,6 +8,19 @@ from utils import asTensor
 # in depth implementation for forward and backprop for all the major operations which i use in pytorch more often.
 # this is highly flexible and easy to add any new operation ( just have to add a class with forward and backward function that's it. )
 
+# def sum_axis(input_shape, grad_shape): # initial version has always some limitation ( ahh )
+#     input_ndim = len(input_shape)
+#     grad_ndim = len(grad_shape)
+#     sum_axes = []
+#     for i in range(1, max(input_ndim, grad_ndim) + 1):
+#         input_dim = input_shape[-i] if i <= input_ndim else 1
+#         grad_dim = grad_shape[-i] if i <= grad_ndim else 1
+#         if input_dim != grad_dim and grad_dim == 1:
+#             sum_axes.append(grad_ndim - i)
+#     for i in range(grad_ndim - input_ndim):
+#         sum_axes.append(i)
+#     sum_axes = list(sorted(set(sum_axes)))
+#     return tuple(sum_axes)
 
 def sum_axis(input_shape, grad_shape):
     axis = tuple(range(len(grad_shape) - len(input_shape)))
@@ -99,6 +112,43 @@ class BaseOperationHandler:
     def backward(self, out_grad):
         raise NotImplementedError("Backward pass not implemented for this operation.")
 
+
+class Stack(BaseOperationHandler):
+    def forward(self, inputs, axis=0):
+        from tensor import Tensor
+
+        tensors = inputs[0]
+        axis = inputs[1]
+
+        data = np.stack([t.data for t in tensors], axis=axis)
+        return Tensor(
+            data=data,
+            retain_grad=True,
+            operation="Backward<Stack>",
+            creator=tensors,
+            meta={"axis": axis},
+        )
+
+    def backward(self, out_grad):
+        axis = out_grad.meta["axis"]
+        input_tensors = out_grad.creator
+
+        # Split the gradient along the stacking axis
+        grads = np.split(out_grad.grad, len(input_tensors), axis=axis)
+        # magic happens here ( it is necessary )
+        # Squeeze the axis used for splitting to revert the stacking
+        grads = [np.squeeze(g, axis=axis) for g in grads]
+
+        for i, tensor in enumerate(input_tensors):
+            grad = handle_broadcasting_and_reshape(tensor, grads[i])
+            if tensor.grad is not None:
+                tensor.grad += grad
+            else:
+                tensor.grad = grad
+
+
+def stack(tensors, axis=0):
+    return Stack()(tensors, axis)
 
 class AddElementWise(BaseOperationHandler):
     def forward(self, inputs):
@@ -1001,6 +1051,35 @@ class Negative(BaseOperationHandler):
 def neg(f):
     return Negative()(f)
 
+# class Stack(BaseOperationHandler): # stack operation
+#     def forward(self, inputs, axis=0):
+#         from tensor import Tensor
+
+#         tensors = inputs[0] 
+#         axis = inputs[1] 
+
+#         data = np.stack([t.data for t in tensors], axis=axis)
+#         return Tensor(
+#             data=data,
+#             retain_grad=True,
+#             operation="Backward<Stack>",
+#             creator=tensors,
+#             meta={"axis": axis},
+#         )
+
+#     def backward(self, out_grad):
+#         axis = out_grad.meta["axis"]
+#         input_tensors = out_grad.creator
+
+#         grads = np.split(out_grad.grad, len(input_tensors), axis=axis)
+
+#         for i, tensor in enumerate(input_tensors):
+#             grad = handle_broadcasting_and_reshape(tensor, grads[i])
+#             tensor.grad = grad if tensor.grad is None else tensor.grad + grad
+
+
+# def stack(tensors, axis=0):
+#     return Stack()(tensors, axis)
 
 class ReduceSum(BaseOperationHandler):
     def forward(self, inputs, axis=None, keepdims=False):
@@ -1064,16 +1143,16 @@ def broadcast(f, shape):
 
 
 class Concat(BaseOperationHandler):
-    def forward(self, inputs, axis=0):
+    def forward(self, inputs):
         from tensor import Tensor
-
+        inputs_data = inputs[0]
         axis = inputs[1]
-        data = np.concatenate([i.data for i in inputs], axis=axis)
+        data = np.concatenate([i.data for i in inputs_data], axis=axis)
         return Tensor(
             data=data,
             retain_grad=True,
             operation="Backward<Concat>",
-            creator=inputs,
+            creator=inputs_data,
             meta={"axis": axis},
         )
 
@@ -1088,8 +1167,8 @@ class Concat(BaseOperationHandler):
             inp.grad = splits[i] if inp.grad is None else inp.grad + splits[i]
 
 
-def concat(*args, axis=0):
-    return Concat()(list(args), axis)
+def concat(*args):
+    return Concat()(list(args[0]), args[1])
 
 
 class Pad(BaseOperationHandler):
@@ -1125,11 +1204,12 @@ def pad(f, pad_width, mode="constant", constant_values=0):
 
 
 class Slice(BaseOperationHandler):
-    def forward(self, inputs, key):
+    def forward(self, inputs):
         from tensor import Tensor
 
         input_f = inputs[0]
         key = inputs[1]
+        # input_f , key = inputs
         sliced_data = input_f.data[key]
         return Tensor(
             data=sliced_data,
@@ -1153,7 +1233,7 @@ def slice_tensor(f, key):
 
 
 class SetItem(BaseOperationHandler):
-    def forward(self, inputs, key, value):
+    def forward(self, inputs):
         from tensor import Tensor
 
         input_f = inputs[0]
@@ -1547,10 +1627,8 @@ class Conv3D(BaseOperationHandler):
             grad_filters if filters.grad is None else filters.grad + grad_filters
         )
 
-
 def conv3d(f, filters, stride=1, padding="valid"):
     return Conv3D()(f, filters, stride, padding)
-
 
 
 class Conv3DOptimized(BaseOperationHandler):

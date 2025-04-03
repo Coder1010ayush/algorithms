@@ -9,8 +9,51 @@ from autograd.autodiff import mse
 from optimizer.optim import AdamOptimizer
 from tensor import Tensor
 from tests.model_tests.linear_unit_test import LinearModel 
-from tests.model_tests.cnn_unit_test import CustomCNN_One , CustomCNN_Three , CustomCNN_Two
+from tests.model_tests.cnn_unit_test import CustomCNN_One , CustomCNN_Three , CustomCNN_Two 
 from init_w import Initializer
+from layers.models import *
+def test_stack_operation():
+    import numpy as np
+    from tensor import Tensor
+    from autograd.autodiff import stack  
+
+    # Test Case 1: Stacking along axis 0
+    t1 = Tensor(np.array([1, 2, 3] , dtype=float), retain_grad=True)
+    t2 = Tensor(np.array([4, 5, 6] , dtype=float), retain_grad=True)
+    t3 = Tensor(np.array([7, 8, 9] , dtype=float), retain_grad=True)
+    stacked_tensor = stack([t1, t2, t3], axis=0)
+
+    expected_output_1 = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]] , dtype=float)
+    assert np.array_equal(stacked_tensor.data, expected_output_1), "Test Case 1 Failed"
+
+    # Test Case 2: Stacking along axis 1
+    t4 = Tensor(np.array([[1, 2], [3, 4]] , dtype=float), retain_grad=True)
+    t5 = Tensor(np.array([[5, 6], [7, 8]] , dtype=float), retain_grad=True)
+    stacked_tensor_2 = stack([t4, t5], axis=1)
+
+    expected_output_2 = np.array([[[1, 2], [5, 6]], [[3, 4], [7, 8]]] , dtype=float)
+    assert np.array_equal(stacked_tensor_2.data, expected_output_2), "Test Case 2 Failed"
+
+    # Test Case 3: Backward Pass for axis 0
+    grad = np.ones_like(stacked_tensor.data)
+    stacked_tensor.grad = grad 
+    stacked_tensor.backprop()
+
+    expected_grad_1 = np.ones_like(t1.data)
+    assert np.array_equal(t1.grad, expected_grad_1), "Gradient mismatch for t1"
+    assert np.array_equal(t2.grad, expected_grad_1), "Gradient mismatch for t2"
+    assert np.array_equal(t3.grad, expected_grad_1), "Gradient mismatch for t3"
+
+    # Test Case 4: Backward Pass for axis 1
+    grad_2 = np.ones_like(stacked_tensor_2.data)
+    stacked_tensor_2.grad = grad_2
+    stacked_tensor_2.backprop()
+
+    expected_grad_2 = np.ones_like(t4.data)
+    assert np.array_equal(t4.grad, expected_grad_2), "Gradient mismatch for t4"
+    assert np.array_equal(t5.grad, expected_grad_2), "Gradient mismatch for t5"
+
+    print("All test cases passed!")
 
 def test_linear():
     init_w = Initializer()
@@ -45,7 +88,28 @@ def test_cnn():
     out_3d = model_3d(input_x_3)
     print(f"Shape of output is {out_3d.shape}")
 
+def test_rnn():
+    rnn = RNN(input_size=10, hidden_size=20, num_layers=3)
+    x = Tensor(np.random.randn(5, 8, 10) ,retain_grad=True)  
+    output, h_n = rnn(x)
+
+    print(output.shape) 
+    print(h_n.shape) 
+
+def test_gru():
+    rnn = GRULayer(input_size=10, hidden_size=20, num_layers=3)
+    x = Tensor(np.random.randn(5, 8, 10) ,retain_grad=True)  
+    output, h_n = rnn(x)
+
+    print(output.shape) 
+    print(h_n.shape) 
 
 if __name__ == "__main__":
     # defining input data for this
-    test_cnn()
+    # test_cnn()
+
+    test_rnn() 
+    test_gru()
+    # x = Tensor(np.random.randn(5, 8, 10) ,retain_grad=True)  
+    # print(x[: , 1 , :])   
+    pass

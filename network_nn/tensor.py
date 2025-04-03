@@ -167,10 +167,8 @@ class Tensor:
                 + (slice(None),) * n_missing
                 + key[ellipsis_idx + 1 :]
             )
-
         if len(key) < self.ndim:
             key = key + (slice(None),) * (self.ndim - len(key))
-
         return diff.slice_tensor(self, key)
 
     def __setitem__(self, key, value):
@@ -282,7 +280,7 @@ class Tensor:
 
     def permute(self, axis: tuple = None):
         return diff.permute(self, axis)
-
+    
     # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< some advance mathematical functions >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # sigmoid , relu  , gelu , softmax etc
 

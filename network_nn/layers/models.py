@@ -1,10 +1,10 @@
 # ------------------------- *utf-8 encoding* ----------------------------
 from initializer_w import Initializer
-from typing import Literal
+from typing import Literal, Optional
 from layers.module import Module, Sequential
 from tensor import Tensor
 import numpy as np
-from autograd.autodiff import relu, sigmoid, tanh, concat as cat
+from autograd.autodiff import relu, sigmoid, stack, tanh, concat as cat
 from autograd.autodiff import conv1d, conv2d, conv3d , conv3d_optimised
 
 
@@ -104,6 +104,7 @@ class RNNCell(Module):
     """
 
     def __init__(self, input_size, hidden_size, bias_option, non_linear_act) -> None:
+        super().__init__()  
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.bias_option = bias_option
@@ -162,10 +163,56 @@ class RNNCell(Module):
         return strg
 
 
-class RNN:
-    def __init__(self) -> None:
-        pass
+class RNN(Module):
+    def __init__(self, input_size, hidden_size, num_layers=1, bias=True, non_linearity="relu"):
+        super().__init__()
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.bias = bias
+        self.non_linearity = non_linearity
+        self.init_w = Initializer()  
 
+        self.rnn_cells = []
+        for layer in range(num_layers):
+            input_dim = input_size if layer == 0 else hidden_size
+            cell = RNNCell(input_dim, hidden_size, bias, non_linearity)
+            self.rnn_cells.append(cell)
+            self.add_module(f"rnn_cell_{layer}", cell)
+
+    def forward(self, x: Tensor, hx: Optional[Tensor] = None):
+        batch_size, seq_len, _ = x.data.shape
+        if hx is None:
+            hx = self.init_w.zeros(
+                shape=(self.num_layers, batch_size, self.hidden_size),
+                retain_grad=True
+            )
+        else:
+            hx = [hx[layer, :, :] for layer in range(self.num_layers)]
+
+        outputs = []
+        for t in range(seq_len):
+            x_t = x[:, t, :]
+            new_hx = []
+            
+            for layer in range(self.num_layers):
+                h_prev = hx[layer]
+                h_new = self.rnn_cells[layer].forward(x_t, h_prev)
+                new_hx.append(h_new)
+                x_t = h_new
+            
+            hx = new_hx
+            outputs.append(x_t)
+
+        # Stack outputs and final hidden states
+        output = stack(outputs, axis=1)
+        h_n = stack(hx, axis=0)
+        
+        return output, h_n
+
+    def __repr__(self):
+        return (f"nn.RNN(input_size={self.input_size}, hidden_size={self.hidden_size}, "
+                f"num_layers={self.num_layers}, non_linearity={self.non_linearity})")
 
 class GRUCell(Module):
     """
@@ -209,26 +256,71 @@ class GRUCell(Module):
         ls = []
         ls.append(x)
         ls.append(hx)
-        out = cat(ls, axis=1)
-        r_out = sigmoid(inp_tensor=self.reset_gate(out))
-        u_out = sigmoid(inp_tensor=self.update_gate(out))
+        out = cat(ls,1)
+        r_out = sigmoid(self.reset_gate(out))
+        u_out = sigmoid(self.update_gate(out))
         # print("rout is ", r_out)
         # print(" --------------------------------------- ")
         # print("rout shape is ", r_out.shape(), type(r_out))
         # print("hx shape is ", hx.shape(), type(hx))
         intermediate_out = r_out * hx
-        f_out = sigmoid(inp_tensor=self.forget_gate(cat([x, intermediate_out], axis=1)))
-        h_new = (Tensor(data=1, requires_grad=True, dtype=np.float32) - u_out) * (
+        f_out = sigmoid(self.forget_gate(cat([x, intermediate_out], 1)))
+        h_new = (Tensor(data=1, retain_grad=True, dtype=np.float32) - u_out) * (
             f_out + (u_out * hx)
         )
         return h_new
 
+class GRULayer(Module):
+    def __init__(self, input_size, hidden_size, num_layers=1, bias=True):
+        super().__init__()
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.bias = bias
+
+        self.gru_cells = []
+        for i in range(num_layers):
+            input_dim = input_size if i == 0 else hidden_size
+            cell = GRUCell(input_dim, hidden_size, bias)
+            self.gru_cells.append(cell)
+            self.add_module(f"gru_cell_{i}", cell)
+
+    def forward(self, x: Tensor, hx: list = None):
+        batch_size, seq_len, _ = x.data.shape 
+
+        if hx is None:
+            hx = [
+                Tensor(
+                    np.zeros((batch_size, self.hidden_size), dtype=np.float32),
+                    retain_grad=True
+                )
+                for _ in range(self.num_layers)
+            ]
+
+        outputs = []
+        for t in range(seq_len):
+            x_t = x[:, t, :]  
+            new_hx = []  
+
+            for layer in range(self.num_layers):
+                h_prev = hx[layer]
+                h_new = self.gru_cells[layer].forward(x_t, h_prev)
+                new_hx.append(h_new)
+                x_t = h_new
+
+            hx = new_hx
+            outputs.append(x_t)
+        output = stack(outputs, axis=1)
+        h_n = stack(hx, axis=0) if self.num_layers > 1 else hx[0].unsqueeze(0)
+        return output, h_n
+    
 
 class LSTMCell(Module):
 
     def __init__(
         self, input_size: int, hidden_size: int, bias_option: bool = True
     ) -> None:
+        super().__init__()
         self.initializer = Initializer()
         self.input_size = input_size
         self.hidden_size = hidden_size
@@ -420,6 +512,7 @@ class Dropout(Module):
     """
 
     def __init__(self, dropout: float) -> None:
+        super().__init__()
         self.dropout = dropout
         self.mask = None
 

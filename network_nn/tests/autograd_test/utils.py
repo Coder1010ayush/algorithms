@@ -55,9 +55,6 @@ def edge_case_6():
     return A.permute(1, 0, 2)
 
 
-import torch
-
-
 def edge_case_7():
     A = torch.randn(2, 3, 4, dtype=torch.float32, requires_grad=True)
     reshaped = A.reshape(2, 12)

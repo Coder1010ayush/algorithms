@@ -17,10 +17,16 @@ class Module:
 
     def __setattr__(self, name, value):
         """Automatically registers submodules as attributes."""
-        # solves a major headache for me
         if isinstance(value, Module):
             self._modules[name] = value
         super().__setattr__(name, value)
+
+    def add_module(self, name, module):
+        """Adds a submodule dynamically."""
+        if not isinstance(module, Module):
+            raise TypeError(f"Expected Module instance, got {type(module)} instead.")
+        self._modules[name] = module
+        setattr(self, name, module)  # Also set as an attribute for direct access
 
     def register_parameter(self, name, param):
         if param is not None:
