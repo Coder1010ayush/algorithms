@@ -214,6 +214,15 @@ class Tensor:
                     if input_node.retain_grad:
                         nodes_to_process.append(input_node)
 
+
+    # unsqueezing function
+    def unsqueeze(self , axis = 0):
+        return diff.unsqueeze(self , axis=axis)
+
+    # squeeze function
+    def squeeze(self , axis = 0):
+        return diff.squeeze(self , axis=axis)
+
     # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< arithmetic operations >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # addition , subtraction , multiplication , division , power , mean , std , exponential , trigo functions , log , custom_function template
 

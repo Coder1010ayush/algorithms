@@ -1024,6 +1024,63 @@ class Abs(BaseOperationHandler):
 def abs(f):
     return Abs()(f)
 
+class Unsqueeze(BaseOperationHandler):
+    def __init__(self, axis):
+        super().__init__()
+        self.axis = axis
+
+    def forward(self, inputs):
+        input_f = inputs[0]
+        from tensor import Tensor
+
+        data = np.expand_dims(input_f.data, axis=self.axis)
+        return Tensor(
+            data=data,
+            retain_grad=input_f.retain_grad,
+            operation=f"Backward<Unsqueeze(axis={self.axis})>",
+            creator=[input_f],
+        )
+
+    def backward(self, out_grad):
+        input_f = out_grad.creator[0]
+        grad = np.squeeze(out_grad.grad, axis=self.axis)
+        input_f.grad = (
+            handle_broadcasting_and_reshape(input_f, grad)
+            if input_f.grad is None
+            else input_f.grad + handle_broadcasting_and_reshape(input_f, grad)
+        )
+
+def unsqueeze(f, axis):
+    return Unsqueeze(axis)(f)
+
+class Squeeze(BaseOperationHandler):
+    def __init__(self, axis=None):
+        super().__init__()
+        self.axis = axis
+
+    def forward(self, inputs):
+        input_f = inputs[0]
+        from tensor import Tensor
+
+        data = np.squeeze(input_f.data, axis=self.axis)
+        return Tensor(
+            data=data,
+            retain_grad=input_f.retain_grad,
+            operation=f"Backward<Squeeze(axis={self.axis})>",
+            creator=[input_f],
+        )
+
+    def backward(self, out_grad):
+        input_f = out_grad.creator[0]
+        grad = np.expand_dims(out_grad.grad, axis=self.axis)
+        input_f.grad = (
+            handle_broadcasting_and_reshape(input_f, grad)
+            if input_f.grad is None
+            else input_f.grad + handle_broadcasting_and_reshape(input_f, grad)
+        )
+
+def squeeze(f, axis=None):
+    return Squeeze(axis)(f)
 
 class Negative(BaseOperationHandler):
     def forward(self, inputs):

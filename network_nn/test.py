@@ -104,12 +104,22 @@ def test_gru():
     print(output.shape) 
     print(h_n.shape) 
 
+def test_lstm():
+    batch_size, seq_len, input_size, hidden_size, num_layers = 32, 10, 64, 128, 2
+    x = Tensor(data= np.random.rand(batch_size, seq_len, input_size)  ,retain_grad=True)
+    h0 = [Tensor(data= np.random.rand(batch_size, hidden_size) ,retain_grad=True) for _ in range(num_layers)]
+    c0 = [Tensor(data= np.random.rand(batch_size, hidden_size) ,retain_grad=True) for _ in range(num_layers)]
+
+    lstm_layer = LSTMLayer(input_size, hidden_size, num_layers)
+    output, (h_n, c_n) = lstm_layer.forward(x, [h0, c0])
+    print("---------------------------------- done -------------------------------------")
+
 if __name__ == "__main__":
     # defining input data for this
     # test_cnn()
 
-    test_rnn() 
-    test_gru()
+    # test_rnn() 
+    # test_gru()
     # x = Tensor(np.random.randn(5, 8, 10) ,retain_grad=True)  
     # print(x[: , 1 , :])   
-    pass
+    test_lstm()

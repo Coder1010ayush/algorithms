@@ -501,6 +501,42 @@ class LSTMCell(Module):
             return h_out, h_t
 
 
+class LSTMLayer(Module):
+    def __init__(self, input_size: int, hidden_size: int, num_layers: int, bias_option: bool = True):
+        super().__init__()
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.bias_option = bias_option
+
+        self.lstm_cells = [
+            LSTMCell(input_size if i == 0 else hidden_size, hidden_size, bias_option) 
+            for i in range(num_layers)
+        ]
+    
+    def forward(self, x: Tensor, h: list):
+        batch_size, seq_len, _ = x.data.shape
+        h_out = []
+        h_t, c_t = h # unpacking
+
+        for t in range(seq_len):
+            x_t = x[:, t, :] 
+            layer_states = []  
+
+            for layer in range(self.num_layers):
+                cell = self.lstm_cells[layer]
+                h_t[layer], c_t[layer] = cell.forward(x_t, [h_t[layer], c_t[layer]])
+                x_t = h_t[layer] 
+                layer_states.append(h_t[layer])
+
+            h_out.append(layer_states[-1].unsqueeze(1)) 
+
+        h_out = cat(h_out, 1) 
+        final_h_c = (h_t, c_t)  
+
+        return h_out, final_h_c
+
+
 class Dropout(Module):
     """
     it helps to less overfit the model
