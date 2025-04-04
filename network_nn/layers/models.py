@@ -670,7 +670,6 @@ class Conv2DLayer(Module):
             f"kernel_size={self.kernel_size}, stride={self.stride}, padding='{self.padding}', bias={self.bias})"
         )
 
-
 class Conv3DLayer(Module):
     def __init__(
         self,
@@ -688,20 +687,18 @@ class Conv3DLayer(Module):
         self.stride = stride
         self.padding = padding
         self.bias = bias
-
+        
         self.initializer = Initializer()
         self.filters = self.initializer.lecun_uniform(
             shape=(out_channels, in_channels, kernel_size, kernel_size, kernel_size),
             retain_grad=True,
             n_in=in_channels,
         )
-
         if bias:
             self.bias_param = self.initializer.lecun_uniform(
                 shape=(1, out_channels, 1, 1, 1), retain_grad=True, n_in=out_channels
             )
             self.register_parameter("bias", self.bias_param)
-
         self.register_parameter("filters", self.filters)
 
     def forward(self, x):

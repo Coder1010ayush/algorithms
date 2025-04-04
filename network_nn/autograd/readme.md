@@ -206,5 +206,3 @@ To compute the gradient with respect to \( A \):
 The gradient calculation in PyTorch's Autograd is based on the chain rule of differentiation. The system tracks each operation, and when the backward pass is invoked, it computes gradients step-by-step, propagating the error through the computational graph. By handling operations like addition, multiplication, matrix multiplication, and convolutions in this systematic way, PyTorch makes it easy to implement and optimize deep learning models.
 
 ---
-
-This `README.md` document serves as a high-level overview, and further mathematical details can be explored through specific examples in PyTorch, but the above descriptions should cover the essential operations.
