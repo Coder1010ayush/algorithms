@@ -151,6 +151,9 @@ class Tensor:
     def transpose(self):
         return diff.transpose(self)
 
+    def reshape(self , new_shape):
+        return diff.reshape(f=self , new_shape=new_shape)
+
     @property
     def dtype(self):
         return self.data.dtype

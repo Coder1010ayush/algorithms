@@ -271,7 +271,8 @@ class TransposeMatrix(BaseOperationHandler):
 
     def forward(self, inputs):
         input_f = inputs[0]
-        data = input_f.data.T
+        axis = inputs[1]
+        data = np.transpose(input_f.data , axis)
         from tensor import Tensor
 
         return Tensor(
@@ -279,16 +280,17 @@ class TransposeMatrix(BaseOperationHandler):
             retain_grad=input_f.retain_grad,
             operation="Backward<TransposeMatrix>",
             creator=[input_f],
+            meta= {"axis" : axis}
         )
 
     def backward(self, out_grad):
         input_f = out_grad.creator[0]
         grad = out_grad.grad
-        input_f.grad = grad.T
+        input_f.grad = np.transpose(grad , out_grad.meta["axis"])
 
 
-def transpose(f):
-    return TransposeMatrix()(f)
+def transpose(f  , axis = -1):
+    return TransposeMatrix()(f ,axis)
 
 
 class Permute(BaseOperationHandler):
@@ -1927,6 +1929,7 @@ class MaxPool2D(BaseOperationHandler):
             x.grad += grad
         else:
             x.grad = grad
+
 def maxpool2d(x ,kernel_size:tuple , stride : tuple ):
     return MaxPool2D()(x , kernel_size , stride)
 
@@ -2301,3 +2304,148 @@ class AvgPool3D(BaseOperationHandler):
 
 def avgpool3d(x , kernel : tuple , stride : tuple):
     return AvgPool3D(x , kernel , stride)
+
+
+class BatchNorm1D(BaseOperationHandler):
+
+    def forward(self, inputs):
+        x = inputs[0].data
+        eps = 1e-8
+        mean = x.mean(axis = 0)
+        sigma = x.var(axis = 0)
+        # normilizing data 
+        x_new = (x - mean) / np.sqrt(sigma + eps)
+        from tensor import Tensor
+        return Tensor(
+            data=x_new , 
+            retain_grad= True , 
+            operation="Backward<BatchNorm1D>", 
+            creator=[x],
+            meta={"eps" : eps , "mean" : mean , "var" : sigma}
+        )
+
+    def backward(self, out_grad):
+        """
+        x̂ = (x - μ) / sqrt(σ² + eps)
+        """
+        dxhat = out_grad.grad                    # ∂L/∂x̂, shape (N, C)
+        x = out_grad.creator[0].data             # original input shape is (N, C)
+        N, C = x.shape
+
+        eps = out_grad.meta["eps"]
+        mean = out_grad.meta["mean"]
+        var = out_grad.meta["var"]
+        std_inv = 1.0 / np.sqrt(var + eps)
+        xmu = x - mean
+        
+        # ∂L/∂var
+        dvar = np.sum(dxhat * xmu * -0.5 * std_inv**3, axis=0)  # shape (C,)
+        
+        # ∂L/∂mean
+        dmean = np.sum(dxhat * -std_inv, axis=0) + dvar * np.mean(-2.0 * xmu, axis=0)
+        
+        # ∂L/∂x
+        dx = (dxhat * std_inv) + (dvar * 2.0 * xmu / N) + (dmean / N)
+
+        # Apply gradient to x
+        handle = out_grad.creator[0]
+        dxt = handle_broadcasting_and_reshape(handle , dx)
+        if handle.grad is not None:
+            handle.grad += dxt
+        else:
+            handle.grad = dxt
+
+def batchnorm1d(x):
+    return BatchNorm1D(x)
+
+class BatchNorm2D(BaseOperationHandler):
+    def forward(self, inputs):
+        x = inputs[0].data
+        eps = 1e-8
+        mean = x.mean(axis=(0, 2, 3), keepdims=True)  # shape: (x, C, x, x)
+        var = x.var(axis=(0, 2, 3), keepdims=True)
+
+        x_hat = (x - mean) / np.sqrt(var + eps)
+
+        from tensor import Tensor
+        return Tensor(
+            data=x_hat,
+            retain_grad=True,
+            operation="Backward<BatchNorm2D>",
+            creator=[x],
+            meta={"eps": eps, "mean": mean, "var": var}
+        )
+
+    def backward(self, out_grad):
+        dxhat = out_grad.grad
+        x = out_grad.creator[0].data
+        N, C, H, W = x.shape
+
+        eps = out_grad.meta["eps"]
+        mean = out_grad.meta["mean"]
+        var = out_grad.meta["var"]
+
+        std_inv = 1.0 / np.sqrt(var + eps)
+        xmu = x - mean
+
+        dvar = np.sum(dxhat * xmu * -0.5 * std_inv**3, axis=(0, 2, 3), keepdims=True)
+        dmean = np.sum(dxhat * -std_inv, axis=(0, 2, 3), keepdims=True) + \
+                dvar * np.mean(-2.0 * xmu, axis=(0, 2, 3), keepdims=True)
+
+        dx = (dxhat * std_inv) + (dvar * 2.0 * xmu / (N * H * W)) + (dmean / (N * H * W))
+
+        handle = out_grad.creator[0]
+        dxt = handle_broadcasting_and_reshape(handle, dx)
+        if handle.grad is not None:
+            handle.grad += dxt
+        else:
+            handle.grad = dxt
+
+
+def batchnorm2d(x):
+    return BatchNorm2D(x)
+
+class BatchNorm3D(BaseOperationHandler):
+    def forward(self, inputs):
+        x = inputs[0].data
+        eps = 1e-8
+        mean = x.mean(axis=(0, 2, 3, 4), keepdims=True) 
+        var = x.var(axis=(0, 2, 3, 4), keepdims=True)
+        x_hat = (x - mean) / np.sqrt(var + eps)
+
+        from tensor import Tensor
+        return Tensor(
+            data=x_hat,
+            retain_grad=True,
+            operation="Backward<BatchNorm3D>",
+            creator=[x],
+            meta={"eps": eps, "mean": mean, "var": var}
+        )
+
+    def backward(self, out_grad):
+        dxhat = out_grad.grad
+        x = out_grad.creator[0].data
+        N, C, D, H, W = x.shape
+
+        eps = out_grad.meta["eps"]
+        mean = out_grad.meta["mean"]
+        var = out_grad.meta["var"]
+
+        std_inv = 1.0 / np.sqrt(var + eps)
+        xmu = x - mean
+
+        dvar = np.sum(dxhat * xmu * -0.5 * std_inv**3, axis=(0, 2, 3, 4), keepdims=True)
+        dmean = np.sum(dxhat * -std_inv, axis=(0, 2, 3, 4), keepdims=True) + \
+                dvar * np.mean(-2.0 * xmu, axis=(0, 2, 3, 4), keepdims=True)
+        dx = (dxhat * std_inv) + (dvar * 2.0 * xmu / (N * D * H * W)) + \
+             (dmean / (N * D * H * W))
+
+        handle = out_grad.creator[0]
+        dxt = handle_broadcasting_and_reshape(handle, dx)
+        if handle.grad is not None:
+            handle.grad += dxt
+        else:
+            handle.grad = dxt
+
+def batchnorm3d(x):
+    return BatchNorm3D(x)
