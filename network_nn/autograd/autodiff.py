@@ -1794,4 +1794,510 @@ class Conv3DOptimized(BaseOperationHandler):
 
 def conv3d_optimised(f, filters, stride=1, padding="same"):
     return Conv3DOptimized()(f, filters, stride, padding)
+"""
 
+========================================
+          POOLING LAYERS NOTES (ACCORDING TO SEMESTER CLASS)
+========================================
+Convention Notation:
+  - Input shapes:
+      * 1D: (N, C, L)
+      * 2D: (N, C, H, W)
+      * 3D: (N, C, D, H, W)
+  - Kernel size: (k), (kH, kW), (kD, kH, kW)
+  - Stride: (s), (sH, sW), (sD, sH, sW)
+
+Output Shape Formula:
+  out_dim = floor((input_dim - kernel_dim) / stride_dim) + 1
+
+----------------------------
+MaxPool (1D / 2D / 3D)
+----------------------------
+Forward:
+  y = max(x[window])
+  - Picks max value in each kernel region.
+  - Stores argmax index for backward routing.
+
+Backward:
+  - Gradient flows only to the max index.
+  - All other locations receive 0.
+
+----------------------------
+AvgPool (1D / 2D / 3D)
+----------------------------
+Forward:
+  y = mean(x[window])
+  - Averages all values in the kernel region.
+
+Backward:
+  - Evenly distributes grad over the kernel:
+    dx = grad / (kernel_volume)
+
+----------------------------
+GlobalAvgPool2D
+----------------------------
+Forward:
+  y[n, c] = mean(x[n, c, :, :])
+  - Output shape: (N, C)
+
+Backward:
+  dx = grad / (H * W)
+  - Gradient is broadcast evenly across each HxW feature map.
+
+----------------------------
+Shape Summary:
+----------------------------
+Layer            Input Shape         → Output Shape
+-----------------------------------------------------
+MaxPool1D        (N, C, L)           → (N, C, (L - k) // s + 1)
+MaxPool2D        (N, C, H, W)        → (N, C, H_out, W_out)
+MaxPool3D        (N, C, D, H, W)     → (N, C, D_out, H_out, W_out)
+AvgPool1D        (N, C, L)           → same   [ i have never used it do not know where it is used ]
+AvgPool2D        (N, C, H, W)        → same
+AvgPool3D        (N, C, D, H, W)     → same
+GlobalAvgPool2D  (N, C, H, W)        → (N, C) [ never used in real world project do not know its benefit or when to use. ]
+
+where:
+  D_out = (D - kD) // sD + 1
+  H_out = (H - kH) // sH + 1
+  W_out = (W - kW) // sW + 1
+
+"""
+
+class MaxPool2D(BaseOperationHandler):
+    def forward(self, inputs):
+        from tensor import Tensor
+
+        x, kernel_size, stride = inputs
+        x_data = x.data
+        N, C, H, W = x_data.shape
+        kH, kW = kernel_size
+        sH, sW = stride
+
+        out_H = (H - kH) // sH + 1
+        out_W = (W - kW) // sW + 1
+
+        out = np.zeros((N, C, out_H, out_W), dtype=x_data.dtype)
+        max_indices = {}
+
+        for n in range(N):
+            for c in range(C):
+                for i in range(out_H):
+                    for j in range(out_W):
+                        h_start = i * sH
+                        h_end = h_start + kH
+                        w_start = j * sW
+                        w_end = w_start + kW
+
+                        window = x_data[n, c, h_start:h_end, w_start:w_end]
+                        max_val = np.max(window)
+                        max_idx = np.unravel_index(np.argmax(window), window.shape)
+
+                        out[n, c, i, j] = max_val
+                        max_indices[(n, c, i, j)] = (h_start + max_idx[0], w_start + max_idx[1])
+
+        return Tensor(
+            data=out,
+            retain_grad=True,
+            operation="Backward<MaxPool2D>",
+            creator=[x],
+            meta={"kernel_size": kernel_size, "stride": stride, "max_indices": max_indices, "input_shape": x_data.shape},
+        )
+
+    def backward(self, out_grad):
+        x = out_grad.creator[0]
+        kernel_size = out_grad.meta["kernel_size"]
+        stride = out_grad.meta["stride"]
+        max_indices = out_grad.meta["max_indices"]
+        N, C, H, W = out_grad.meta["input_shape"]
+
+        dx = np.zeros((N, C, H, W), dtype=out_grad.grad.dtype)
+        grad_out = out_grad.grad
+        out_H, out_W = grad_out.shape[2], grad_out.shape[3]
+
+        for n in range(N):
+            for c in range(C):
+                for i in range(out_H):
+                    for j in range(out_W):
+                        h_idx, w_idx = max_indices[(n, c, i, j)]
+                        dx[n, c, h_idx, w_idx] += grad_out[n, c, i, j]
+
+        grad = handle_broadcasting_and_reshape(x, dx)
+        if x.grad is not None:
+            x.grad += grad
+        else:
+            x.grad = grad
+def maxpool2d(x ,kernel_size:tuple , stride : tuple ):
+    return MaxPool2D()(x , kernel_size , stride)
+
+class AvgPool2D(BaseOperationHandler):
+    def forward(self, inputs):
+        from tensor import Tensor
+
+        x, kernel_size, stride = inputs
+        x_data = x.data
+        N, C, H, W = x_data.shape
+        kH, kW = kernel_size
+        sH, sW = stride
+
+        out_H = (H - kH) // sH + 1
+        out_W = (W - kW) // sW + 1
+
+        out = np.zeros((N, C, out_H, out_W), dtype=x_data.dtype)
+
+        for n in range(N):
+            for c in range(C):
+                for i in range(out_H):
+                    for j in range(out_W):
+                        h_start = i * sH
+                        h_end = h_start + kH
+                        w_start = j * sW
+                        w_end = w_start + kW
+
+                        window = x_data[n, c, h_start:h_end, w_start:w_end]
+                        out[n, c, i, j] = np.mean(window)
+
+        return Tensor(
+            data=out,
+            retain_grad=True,
+            operation="Backward<AvgPool2D>",
+            creator=[x],
+            meta={"kernel_size": kernel_size, "stride": stride, "input_shape": x_data.shape},
+        )
+
+    def backward(self, out_grad):
+        x = out_grad.creator[0]
+        kernel_size = out_grad.meta["kernel_size"]
+        stride = out_grad.meta["stride"]
+        N, C, H, W = out_grad.meta["input_shape"]
+        kH, kW = kernel_size
+        sH, sW = stride
+
+        dx = np.zeros((N, C, H, W), dtype=out_grad.grad.dtype)
+        grad_out = out_grad.grad
+        out_H, out_W = grad_out.shape[2], grad_out.shape[3]
+        pool_area = kH * kW
+
+        for n in range(N):
+            for c in range(C):
+                for i in range(out_H):
+                    for j in range(out_W):
+                        h_start = i * sH
+                        h_end = h_start + kH
+                        w_start = j * sW
+                        w_end = w_start + kW
+
+                        # Distribute grad_out[n, c, i, j] evenly over the window
+                        dx[n, c, h_start:h_end, w_start:w_end] += grad_out[n, c, i, j] / pool_area
+
+        grad = handle_broadcasting_and_reshape(x, dx)
+        if x.grad is not None:
+            x.grad += grad
+        else:
+            x.grad = grad
+
+def avgpool2d(x ,kernel_size:tuple , stride : tuple ):
+    return AvgPool2D()(x , kernel_size , stride)
+
+class MaxPool1D(BaseOperationHandler):
+    def forward(self, inputs):
+        from tensor import Tensor
+
+        x, kernel_size, stride = inputs
+        x_data = x.data
+        N, C, L = x_data.shape
+        k, s = kernel_size, stride
+
+        out_L = (L - k) // s + 1
+        out = np.zeros((N, C, out_L), dtype=x_data.dtype)
+        max_indices = {}
+
+        for n in range(N):
+            for c in range(C):
+                for i in range(out_L):
+                    start = i * s
+                    end = start + k
+                    window = x_data[n, c, start:end]
+                    max_val = np.max(window)
+                    max_idx = np.argmax(window)
+                    out[n, c, i] = max_val
+                    max_indices[(n, c, i)] = start + max_idx
+
+        return Tensor(
+            data=out,
+            retain_grad=True,
+            operation="Backward<MaxPool1D>",
+            creator=[x],
+            meta={"kernel_size": kernel_size, "stride": stride, "max_indices": max_indices, "input_shape": x_data.shape},
+        )
+
+    def backward(self, out_grad):
+        x = out_grad.creator[0]
+        k, s = out_grad.meta["kernel_size"], out_grad.meta["stride"]
+        max_indices = out_grad.meta["max_indices"]
+        N, C, L = out_grad.meta["input_shape"]
+
+        dx = np.zeros((N, C, L), dtype=out_grad.grad.dtype)
+        grad_out = out_grad.grad
+
+        for n in range(N):
+            for c in range(C):
+                for i in range(grad_out.shape[2]):
+                    idx = max_indices[(n, c, i)]
+                    dx[n, c, idx] += grad_out[n, c, i]
+
+        grad = handle_broadcasting_and_reshape(x, dx)
+        if x.grad is not None:
+            x.grad += grad
+        else:
+            x.grad = grad
+
+def maxpool1d(x ,kernel_size:int , stride : int ):
+    return MaxPool1D()(x , kernel_size , stride)
+
+class AvgPool1D(BaseOperationHandler):
+    def forward(self, inputs):
+        from tensor import Tensor
+
+        x, kernel_size, stride = inputs
+        x_data = x.data
+        N, C, L = x_data.shape
+        k, s = kernel_size, stride
+
+        out_L = (L - k) // s + 1
+        out = np.zeros((N, C, out_L), dtype=x_data.dtype)
+
+        for n in range(N):
+            for c in range(C):
+                for i in range(out_L):
+                    start = i * s
+                    end = start + k
+                    out[n, c, i] = np.mean(x_data[n, c, start:end])
+
+        return Tensor(
+            data=out,
+            retain_grad=True,
+            operation="Backward<AvgPool1D>",
+            creator=[x],
+            meta={"kernel_size": kernel_size, "stride": stride, "input_shape": x_data.shape},
+        )
+
+    def backward(self, out_grad):
+        x = out_grad.creator[0]
+        k, s = out_grad.meta["kernel_size"], out_grad.meta["stride"]
+        N, C, L = out_grad.meta["input_shape"]
+
+        dx = np.zeros((N, C, L), dtype=out_grad.grad.dtype)
+        grad_out = out_grad.grad
+        pool_area = k
+
+        for n in range(N):
+            for c in range(C):
+                for i in range(grad_out.shape[2]):
+                    start = i * s
+                    end = start + k
+                    dx[n, c, start:end] += grad_out[n, c, i] / pool_area
+
+        grad = handle_broadcasting_and_reshape(x, dx)
+        if x.grad is not None:
+            x.grad += grad
+        else:
+            x.grad = grad
+
+def avgpool1d(x ,kernel_size:int , stride : int ):
+    return AvgPool1D()(x , kernel_size , stride)
+
+class GlobalAvgPool2D(BaseOperationHandler):
+    def forward(self, inputs):
+        from tensor import Tensor
+
+        x = inputs[0]
+        x_data = x.data
+        N, C, H, W = x_data.shape
+
+        out = np.mean(x_data, axis=(2, 3), keepdims=False)  # shape: (N, C)
+
+        return Tensor(
+            data=out,
+            retain_grad=True,
+            operation="Backward<GlobalAvgPool2D>",
+            creator=[x],
+            meta={"input_shape": x_data.shape},
+        )
+
+    def backward(self, out_grad):
+        x = out_grad.creator[0]
+        N, C, H, W = out_grad.meta["input_shape"]
+        grad_out = out_grad.grad
+
+        # Expand grad shape (N, C) -> (N, C, H, W) with equal distribution => similar to pytorch
+        grad = grad_out[:, :, None, None] / (H * W)
+        grad = np.broadcast_to(grad, (N, C, H, W))
+
+        grad = handle_broadcasting_and_reshape(x, grad)
+        if x.grad is not None:
+            x.grad += grad
+        else:
+            x.grad = grad
+
+def globalpool2d(x):
+    return GlobalAvgPool2D()(x)
+
+class MaxPool3D(BaseOperationHandler):
+    def forward(self, inputs):
+        from tensor import Tensor
+
+        x, kernel_size, stride = inputs
+        x_data = x.data
+        N, C, D, H, W = x_data.shape
+        kD, kH, kW = kernel_size
+        sD, sH, sW = stride
+
+        out_D = (D - kD) // sD + 1
+        out_H = (H - kH) // sH + 1
+        out_W = (W - kW) // sW + 1
+
+        out = np.zeros((N, C, out_D, out_H, out_W), dtype=x_data.dtype)
+        max_indices = {}
+
+        for n in range(N):
+            for c in range(C):
+                for d in range(out_D):
+                    for i in range(out_H):
+                        for j in range(out_W):
+                            d_start = d * sD
+                            h_start = i * sH
+                            w_start = j * sW
+                            d_end = d_start + kD
+                            h_end = h_start + kH
+                            w_end = w_start + kW
+
+                            window = x_data[n, c, d_start:d_end, h_start:h_end, w_start:w_end]
+                            max_val = np.max(window)
+                            max_idx = np.unravel_index(np.argmax(window), window.shape)
+
+                            out[n, c, d, i, j] = max_val
+                            max_indices[(n, c, d, i, j)] = (
+                                d_start + max_idx[0],
+                                h_start + max_idx[1],
+                                w_start + max_idx[2],
+                            )
+
+        return Tensor(
+            data=out,
+            retain_grad=True,
+            operation="Backward<MaxPool3D>",
+            creator=[x],
+            meta={
+                "kernel_size": kernel_size,
+                "stride": stride,
+                "max_indices": max_indices,
+                "input_shape": x_data.shape,
+            },
+        )
+
+    def backward(self, out_grad):
+        x = out_grad.creator[0]
+        max_indices = out_grad.meta["max_indices"]
+        N, C, D, H, W = out_grad.meta["input_shape"]
+        grad_out = out_grad.grad
+        out_D, out_H, out_W = grad_out.shape[2:]
+
+        dx = np.zeros((N, C, D, H, W), dtype=grad_out.dtype)
+
+        for n in range(N):
+            for c in range(C):
+                for d in range(out_D):
+                    for i in range(out_H):
+                        for j in range(out_W):
+                            d_idx, h_idx, w_idx = max_indices[(n, c, d, i, j)]
+                            dx[n, c, d_idx, h_idx, w_idx] += grad_out[n, c, d, i, j]
+
+        grad = handle_broadcasting_and_reshape(x, dx)
+        if x.grad is not None:
+            x.grad += grad
+        else:
+            x.grad = grad
+
+def maxpool3d(x , kernel : tuple , stride : tuple):
+    return MaxPool3D(x , kernel , stride)
+
+
+class AvgPool3D(BaseOperationHandler):
+    def forward(self, inputs):
+        from tensor import Tensor
+
+        x, kernel_size, stride = inputs
+        x_data = x.data
+        N, C, D, H, W = x_data.shape
+        kD, kH, kW = kernel_size
+        sD, sH, sW = stride
+
+        out_D = (D - kD) // sD + 1
+        out_H = (H - kH) // sH + 1
+        out_W = (W - kW) // sW + 1
+
+        out = np.zeros((N, C, out_D, out_H, out_W), dtype=x_data.dtype)
+
+        for n in range(N):
+            for c in range(C):
+                for d in range(out_D):
+                    for i in range(out_H):
+                        for j in range(out_W):
+                            d_start = d * sD
+                            h_start = i * sH
+                            w_start = j * sW
+                            d_end = d_start + kD
+                            h_end = h_start + kH
+                            w_end = w_start + kW
+
+                            window = x_data[n, c, d_start:d_end, h_start:h_end, w_start:w_end]
+                            out[n, c, d, i, j] = np.mean(window)
+
+        return Tensor(
+            data=out,
+            retain_grad=True,
+            operation="Backward<AvgPool3D>",
+            creator=[x],
+            meta={
+                "kernel_size": kernel_size,
+                "stride": stride,
+                "input_shape": x_data.shape,
+            },
+        )
+
+    def backward(self, out_grad):
+        x = out_grad.creator[0]
+        kD, kH, kW = out_grad.meta["kernel_size"]
+        sD, sH, sW = out_grad.meta["stride"]
+        N, C, D, H, W = out_grad.meta["input_shape"]
+        grad_out = out_grad.grad
+        out_D, out_H, out_W = grad_out.shape[2:]
+        pool_area = kD * kH * kW
+
+        dx = np.zeros((N, C, D, H, W), dtype=grad_out.dtype)
+
+        for n in range(N):
+            for c in range(C):
+                for d in range(out_D):
+                    for i in range(out_H):
+                        for j in range(out_W):
+                            d_start = d * sD
+                            h_start = i * sH
+                            w_start = j * sW
+                            d_end = d_start + kD
+                            h_end = h_start + kH
+                            w_end = w_start + kW
+
+                            dx[n, c, d_start:d_end, h_start:h_end, w_start:w_end] += (
+                                grad_out[n, c, d, i, j] / pool_area
+                            )
+
+        grad = handle_broadcasting_and_reshape(x, dx)
+        if x.grad is not None:
+            x.grad += grad
+        else:
+            x.grad = grad
+
+def avgpool3d(x , kernel : tuple , stride : tuple):
+    return AvgPool3D(x , kernel , stride)
