@@ -123,4 +123,10 @@ if __name__ == "__main__":
     # test_gru()
     # x = Tensor(np.random.randn(5, 8, 10) ,retain_grad=True)  
     # print(x[: , 1 , :])   
-    test_lstm()
+    # test_lstm()
+
+    import torch
+    x = torch.tensor([[1, 2], [3, 4]], dtype=torch.float32)
+    mask = torch.tensor([[False, True], [True, False]])
+    out = torch.masked_fill(x, mask, -1)
+    print(out)
