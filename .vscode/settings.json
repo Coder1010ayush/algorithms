@@ -1,6 +1,6 @@
 {
     "editor.formatOnSave": true,
-    "editor.fontSize": 15,
+    "editor.fontSize": 17,
     "editor.lineHeight": 1.9,
     "editor.bracketPairColorization.enabled": true,
     "editor.autoClosingBrackets": "always",
