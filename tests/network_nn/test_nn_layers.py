@@ -176,3 +176,57 @@ def test_init_functions_shapes_and_scales():
     np.testing.assert_allclose(t.data.T @ t.data, np.eye(32), atol=1e-8)
     nn.init.zeros_(t)
     assert not t.data.any()
+
+
+@pytest.mark.parametrize("cls", [nn.RNN, nn.GRU, nn.LSTM])
+def test_bidirectional_recurrent(cls, rng):
+    layer = cls(input_size=4, hidden_size=6, num_layers=2, bidirectional=True)
+    x = Tensor(rng.standard_normal((3, 5, 4)), requires_grad=True)
+    out, state = layer(x)
+    assert out.shape == (3, 5, 12) and layer.output_size == 12
+    h = state[0] if cls is nn.LSTM else state
+    assert h.shape == (4, 3, 6)
+    np.testing.assert_allclose(out.data[:, -1, :6], h.data[2])   # last forward step of top layer
+    np.testing.assert_allclose(out.data[:, 0, 6:], h.data[3])    # last backward step of top layer
+    out.sum().backward()
+    assert x.grad.shape == x.shape
+    assert len(list(layer.parameters())) == 16
+
+
+def test_bidirectional_sees_the_future(rng):
+    layer = nn.RNN(1, 4, bidirectional=True)
+    x = rng.standard_normal((1, 6, 1))
+    base = layer(Tensor(x))[0].data
+    x2 = x.copy()
+    x2[0, -1, 0] += 1.0
+    changed = layer(Tensor(x2))[0].data
+    assert not np.allclose(base[0, 0, 4:], changed[0, 0, 4:])
+    np.testing.assert_allclose(base[0, 0, :4], changed[0, 0, :4])
+
+
+def test_transformer_encoder_decoder_shapes_and_causality(rng):
+    model = nn.Transformer(src_vocab=11, tgt_vocab=13, d_model=16, num_heads=4, num_encoder_layers=1, num_decoder_layers=1, dim_feedforward=32)
+    src = rng.integers(0, 11, (2, 7))
+    tgt = rng.integers(0, 13, (2, 5))
+    logits = model(src, tgt)
+    assert logits.shape == (2, 5, 13)
+    tgt2 = tgt.copy()
+    tgt2[:, -1] = (tgt2[:, -1] + 1) % 13
+    logits2 = model(src, tgt2)
+    np.testing.assert_allclose(logits.data[:, :-1], logits2.data[:, :-1], atol=1e-10)
+    assert not np.allclose(logits.data[:, -1], logits2.data[:, -1])
+    loss = F.cross_entropy(logits.reshape(-1, 13), tgt.reshape(-1))
+    loss.backward()
+    assert all(p.grad is not None for p in model.parameters())
+
+
+def test_positional_encoding_and_padding_mask():
+    pe = nn.PositionalEncoding(8, max_len=10)
+    x = Tensor(np.zeros((1, 4, 8)))
+    out = pe(x).data[0]
+    np.testing.assert_allclose(out[0, 0::2], 0.0)
+    np.testing.assert_allclose(out[0, 1::2], 1.0)
+    assert not np.allclose(out[1], out[2])
+    mask = nn.padding_mask([3, 1], max_len=4)
+    assert mask.shape == (2, 1, 1, 4)
+    assert mask[0, 0, 0].tolist() == [True, True, True, False]

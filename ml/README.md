@@ -16,16 +16,22 @@ ml/
     metrics.py            RegressionMetric, ClassificationMetric and the underlying functions
     normalization.py      Normalization (min_max, z_score, max_abs, mean, unit_vector, log, box_cox, yeo_johnson, quantile)
   models/
-    linear.py             LinearRegression, LogisticRegression
+    linear.py             LinearRegression, LogisticRegression, QuantileRegression
     svm.py                SVMClassifier, SVMRegression (linear / rbf / poly kernels)
     knn.py                KNearestNeighbour
     naive_bayes.py        NaiveBayes (gaussian / multinomial / bernoulli)
     tree.py               DecisionTreeID3, DecisionTreeCART, DecisionTreeRegression
     random_forest.py      RandomForest (bootstrap, max_features, OOB score, multiprocessing)
     boosting/             AdaBoostClassifier, AdaBoostRegressor, GradientBoostClassifier/Regressor, XGBoostClassifier/Regressor
-    clustering/           KMeans, KMedoids, AgglomerativeClustering, centroid helpers
+    ensemble.py           VotingClassifier, StackingClassifier
+    clustering/           KMeans, KMedoids, AgglomerativeClustering, DBSCAN, MeanShift, SpectralClustering, AffinityPropagation
+    decomposition/        TSNE, FastICA, LinearDiscriminantAnalysis, TruncatedSVD
     gmm.py                GaussianMixtureModel (EM)
     pca.py                PCA (SVD based)
+    markov/               MarkovChain, HiddenMarkovModel (Baum-Welch, Viterbi)
+    topic.py              LatentDirichletAllocation (collapsed Gibbs sampling)
+    association.py        Apriori, FPGrowth
+    semi_supervised.py    SelfTrainingClassifier, CoTraining
     gaussian_process.py   GaussianProcessRegression, GaussianProcessClassification, MultiClassGaussianProcessClassification
 ```
 

@@ -35,7 +35,8 @@ for step in range(300):
 | `autograd/norm.py` | `Normalize`, the primitive behind layer norm and batch norm |
 | `autograd/conv.py`, `autograd/pool.py` | N-d convolution and max/avg pooling (1D, 2D and 3D share one implementation) |
 | `autograd/functional.py` | the functional API: every op as a plain function (`F.conv2d`, `F.softmax`, ...) |
-| `nn/` | `Module`, `Sequential`, `ModuleList`, layers, norms, conv/pool, RNN/GRU/LSTM, attention, losses, `init` |
+| `nn/` | `Module`, `Sequential`, `ModuleList`, layers, norms, conv/pool, RNN/GRU/LSTM (optionally bidirectional), attention, positional encoding, transformer encoder/decoder, losses, `init` |
+| `models/` | `Autoencoder`, `VariationalAutoencoder` + `vae_loss`, `GAN` with a `train_step` helper |
 | `optim/` | `SGD`, `Adam`, `AdamW`, `Nadam`, `RMSprop`, `Adagrad`, `Adadelta` and schedulers |
 
 ## Adding an operation

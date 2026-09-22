@@ -216,40 +216,40 @@ Challenge: A space-efficient probabilistic data structure for set membership, re
 - Convolutional Neural Network (CNN) ✅
 - Recurrent Neural Network (RNN) ✅
 - Long Short-Term Memory (LSTM) ✅
-- Bidirectional LSTM
+- Bidirectional LSTM ✅
 - GRU (Gated Recurrent Unit) ✅
-- Transformer Models ✅ (multi-head attention and encoder layer; decoder pending)
+- Transformer Models ✅
 - Multi-Layer Perceptron (MLP) ✅
 - Ridge Regression ✅
 - Lasso Regression ✅
 - Elastic Net Regression ✅
 - Polynomial Regression ✅
-- Quantile Regression
+- Quantile Regression ✅
 - Stochastic Gradient Descent (SGD) ✅
 
 ## Unsupervised Learning Algorithms
 
 - k-Means Clustering ✅
 - Hierarchical Clustering ✅
-- DBSCAN (Density-Based Spatial Clustering)
+- DBSCAN (Density-Based Spatial Clustering) ✅
 - Gaussian Mixture Model (GMM) ✅
 - Principal Component Analysis (PCA) ✅
-- Independent Component Analysis (ICA)
-- t-Distributed Stochastic Neighbor Embedding (t-SNE)
+- Independent Component Analysis (ICA) ✅
+- t-Distributed Stochastic Neighbor Embedding (t-SNE) ✅
 - Uniform Manifold Approximation and Projection (UMAP)
-- Autoencoders
+- Autoencoders ✅
 - Self-Organizing Maps (SOM)
-- Latent Dirichlet Allocation (LDA)
-- Apriori Algorithm (for association rule learning)
-- FP-Growth Algorithm
-- Mean Shift Clustering
+- Latent Dirichlet Allocation (LDA) ✅
+- Apriori Algorithm (for association rule learning) ✅
+- FP-Growth Algorithm ✅
+- Mean Shift Clustering ✅
 
 ### Semi-Supervised Learning Algorithms
 
-- Self-Training Classifier
-- Co-Training
+- Self-Training Classifier ✅
+- Co-Training ✅
 - Tri-Training
-- Generative Adversarial Networks (GANs)
+- Generative Adversarial Networks (GANs) ✅
 
 ## Reinforcement Learning Algorithms
 
@@ -269,22 +269,22 @@ Challenge: A space-efficient probabilistic data structure for set membership, re
 - Bagging ✅
 - Boosting (Gradient Boosting, AdaBoost) ✅
 - Stacking ✅
-- Voting Classifier
+- Voting Classifier ✅
 - Blending ✅
 
 ## Dimensionality Reduction Algorithms
 
 - Principal Component Analysis (PCA) ✅
-- Linear Discriminant Analysis (LDA)
-- t-SNE
+- Linear Discriminant Analysis (LDA) ✅
+- t-SNE ✅
 - UMAP
-- Singular Value Decomposition (SVD)
+- Singular Value Decomposition (SVD) ✅
 
 ## Clustering Algorithms (for Specific Purposes) ✅
 
 - k-Medoids ✅
-- Affinity Propagation
-- Spectral Clustering
+- Affinity Propagation ✅
+- Spectral Clustering ✅
 - BIRCH (Balanced Iterative Reducing and Clustering using Hierarchies)
 - OPTICS (Ordering Points To Identify the Clustering Structure)
 
@@ -292,8 +292,8 @@ Challenge: A space-efficient probabilistic data structure for set membership, re
 
 - Gaussian Processes (regression and classification) ✅
 - Bayesian Networks
-- Hidden Markov Models (HMM)
-- Markov Chains
-- VAE (Variational Autoencoder)
+- Hidden Markov Models (HMM) ✅
+- Markov Chains ✅
+- VAE (Variational Autoencoder) ✅
 - Deep Belief Networks (DBN)
 - Attention Mechanisms and Self-Attention Models ✅

@@ -8,7 +8,7 @@ from network_nn.tensor import (  # noqa: F401  (tensor must be imported first)
     no_grad,
     set_grad_enabled,
 )
-from network_nn import autograd, nn, optim  # noqa: E402,F401
+from network_nn import autograd, models, nn, optim  # noqa: E402,F401
 from network_nn.autograd import functional  # noqa: E402,F401
 
 __all__ = [
@@ -20,6 +20,7 @@ __all__ = [
     "set_grad_enabled",
     "autograd",
     "functional",
+    "models",
     "nn",
     "optim",
 ]

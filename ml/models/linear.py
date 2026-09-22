@@ -71,6 +71,39 @@ class LinearRegression(_GDModel):
         return _linear(X.reshape(-1, 1) if X.ndim == 1 else X, self.coeff, self.intercept)
 
 
+def _pinball_loss(q: float):
+    def loss(y: np.ndarray, y_hat: np.ndarray) -> float:
+        err = y - y_hat
+        return float(np.mean(np.maximum(q * err, (q - 1.0) * err)))
+
+    return loss
+
+
+def _pinball_grad(q: float):
+    def grad(X: np.ndarray, y: np.ndarray, y_hat: np.ndarray) -> tuple[np.ndarray, float]:
+        g = np.where(y_hat < y, -q, 1.0 - q)
+        return X.T @ g / len(y), float(np.mean(g))
+
+    return grad
+
+
+class QuantileRegression(_GDModel):
+    """Linear regression of the ``quantile``-th conditional quantile via the pinball loss."""
+
+    def __init__(self, quantile: float = 0.5, **kwargs):
+        if not 0.0 < quantile < 1.0:
+            raise ValueError("quantile must be in (0, 1)")
+        super().__init__(**kwargs)
+        self.quantile = quantile
+
+    def fit(self, X: np.ndarray, y: np.ndarray) -> "QuantileRegression":
+        return self._fit(X, y, _linear, _pinball_loss(self.quantile), _pinball_grad(self.quantile))
+
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        X = np.asarray(X, dtype=float)
+        return _linear(X.reshape(-1, 1) if X.ndim == 1 else X, self.coeff, self.intercept)
+
+
 class LogisticRegression(_GDModel):
     def __init__(self, threshold: float = 0.5, **kwargs):
         super().__init__(**kwargs)

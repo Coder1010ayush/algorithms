@@ -1,6 +1,17 @@
 from network_nn.autograd import functional  # noqa: F401
 from network_nn.nn import init  # noqa: F401
-from network_nn.nn.attention import MultiheadAttention, TransformerEncoderLayer, causal_mask, scaled_dot_product_attention
+from network_nn.nn.attention import (
+    MultiheadAttention,
+    PositionalEncoding,
+    Transformer,
+    TransformerDecoder,
+    TransformerDecoderLayer,
+    TransformerEncoder,
+    TransformerEncoderLayer,
+    causal_mask,
+    padding_mask,
+    scaled_dot_product_attention,
+)
 from network_nn.nn.conv import (
     AvgPool1d,
     AvgPool2d,
