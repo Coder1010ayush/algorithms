@@ -1,5 +1,15 @@
-# Ignore Python cache files
+# Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Environments
+.venv/
+
+# Tooling
+.pytest_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/

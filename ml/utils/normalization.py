@@ -1,83 +1,122 @@
-# ------------------------ utf-8 encoding ------------------
+from typing import Literal
+
 import numpy as np
-import math
-import pandas as pd
-from typing import Union, Literal
-from scipy import stats
+
+Method = Literal[
+    "min_max",
+    "z_score",
+    "max_abs",
+    "unit_vector",
+    "log",
+    "mean",
+    "box_cox",
+    "yeo_johnson",
+    "quantile",
+]
 
 
-# all the major kinds of normalization technique is implemented here
+def _box_cox(x: np.ndarray, lam: float) -> np.ndarray:
+    return np.log(x) if lam == 0 else (x**lam - 1.0) / lam
+
+
+def _yeo_johnson(x: np.ndarray, lam: float) -> np.ndarray:
+    out = np.empty_like(x, dtype=float)
+    pos = x >= 0
+    if lam != 0:
+        out[pos] = ((x[pos] + 1.0) ** lam - 1.0) / lam
+    else:
+        out[pos] = np.log1p(x[pos])
+    if lam != 2:
+        out[~pos] = -((-x[~pos] + 1.0) ** (2.0 - lam) - 1.0) / (2.0 - lam)
+    else:
+        out[~pos] = -np.log1p(-x[~pos])
+    return out
+
+
+def _mle_lambda(x: np.ndarray, transform, grid: np.ndarray, log_jacobian) -> float:
+    best_lam, best_ll = grid[0], -np.inf
+    n = x.size
+    for lam in grid:
+        z = transform(x, lam)
+        var = np.var(z)
+        if var <= 0:
+            continue
+        ll = -0.5 * n * np.log(var) + log_jacobian(x, lam)
+        if ll > best_ll:
+            best_lam, best_ll = lam, ll
+    return float(best_lam)
+
+
 class Normalization:
+    """Column-wise feature scaling. ``fit`` learns statistics, ``transform`` applies them."""
 
-    def __init__(
-        self,
-        methode=Literal[
-            "min_max",
-            "z_score",
-            "max_abs",
-            "median_iqr",
-            "unit_vector_scale",
-            "log_transform",
-            "power_transform_yeo_johnson",
-            "power_transform_boxcox",
-            "mean_normalization",
-            "binary_transform",
-            "quantile_transform",
-        ],
-    ):
-        self.methode = methode
+    def __init__(self, method: Method = "z_score", n_quantiles: int = 100):
+        self.method = method
+        self.n_quantiles = n_quantiles
+        self.params: dict = {}
 
-    def quantile_transform(self, x_val: np.ndarray):
-        x_val = x_val.flatten()
-        sorted_x = np.sort(x_val)
-
-        # Generate quantiles
-        quantiles = np.linspace(0, 1, self.n_quantiles)
-        ranks = np.argsort(np.argsort(x_val)) / len(x_val)
-
-        transformed_x = np.interp(
-            ranks, quantiles, np.linspace(-3, 3, self.n_quantiles)
-        )
-        return transformed_x.reshape(-1, 1)
-
-    def forward(self, x_val: Union[np.ndarray, pd.DataFrame]):
-        if isinstance(x_val, pd.DataFrame):
-            x_val = x_val.to_numpy()
-
-        if self.methode == "min_max":
-            max_v = np.max(x_val)
-            min_v = np.min(x_val)
-            x_val = (x_val - min_v) / (max_v - min_v)
-        elif self.methode == "z_score":
-            mean = np.mean(x_val)
-            alpha = np.std(x_val)
-            x_val = (x_val - mean) / alpha
-        elif self.methode == "max_abs":
-            max_v = np.max(np.abs(x_val))
-            x_val = x_val / max_v
-        elif self.methode == "unit_vector_scale":
-            norm = np.linalg.norm(x_val, keepdims=True)
-            x_val = x_val / norm
-        elif self.methode == "log_transform":
-            x_val = np.log2(x_val + 1)
-        elif self.methode == "mean_normalization":
-            mean = np.mean(x_val)
-            max_v = np.max(x_val)
-            min_v = np.min(x_val)
-            x_val = (x_val - mean) / (max_v - min_v)
-        elif self.method == "power_transform_boxcox":
-            if np.any(x_val <= 0):
-                raise ValueError(
-                    "Box-Cox transformation requires all values to be positive."
+    def fit(self, X: np.ndarray) -> "Normalization":
+        X = np.asarray(X, dtype=float)
+        m = self.method
+        if m == "min_max":
+            self.params = {"min": X.min(axis=0), "max": X.max(axis=0)}
+        elif m == "z_score":
+            self.params = {"mean": X.mean(axis=0), "std": X.std(axis=0)}
+        elif m == "max_abs":
+            self.params = {"max_abs": np.abs(X).max(axis=0)}
+        elif m == "mean":
+            self.params = {"mean": X.mean(axis=0), "min": X.min(axis=0), "max": X.max(axis=0)}
+        elif m == "box_cox":
+            if np.any(X <= 0):
+                raise ValueError("box_cox requires strictly positive values")
+            grid = np.linspace(-3, 3, 121)
+            lams = [
+                _mle_lambda(col, _box_cox, grid, lambda c, l: (l - 1.0) * np.sum(np.log(c)))
+                for col in X.T
+            ]
+            self.params = {"lambda": np.array(lams)}
+        elif m == "yeo_johnson":
+            grid = np.linspace(-3, 3, 121)
+            lams = [
+                _mle_lambda(
+                    col, _yeo_johnson, grid, lambda c, l: (l - 1.0) * np.sum(np.sign(c) * np.log1p(np.abs(c)))
                 )
-            x_val, _ = stats.boxcox(x_val.flatten())
-            x_val = x_val.reshape(-1, 1)
-        elif self.method == "power_transform_yeo_johnson":
-            x_val, _ = stats.yeojohnson(x_val.flatten())
-            x_val = x_val.reshape(-1, 1)
-        elif self.methode == "quantile_transform":
-            return self.quantile_transform(x_val=x_val)
+                for col in X.T
+            ]
+            self.params = {"lambda": np.array(lams)}
+        elif m == "quantile":
+            q = np.linspace(0, 1, self.n_quantiles)
+            self.params = {"quantiles": np.quantile(X, q, axis=0), "grid": q}
+        elif m in ("unit_vector", "log"):
+            self.params = {}
         else:
-            raise ValueError(f"Unsupported {self.methode} is provided.")
+            raise ValueError(f"unsupported method {m!r}")
+        return self
 
-        return x_val
+    def transform(self, X: np.ndarray) -> np.ndarray:
+        X = np.asarray(X, dtype=float)
+        p, m = self.params, self.method
+        if m == "min_max":
+            return (X - p["min"]) / np.where(p["max"] - p["min"] == 0, 1.0, p["max"] - p["min"])
+        if m == "z_score":
+            return (X - p["mean"]) / np.where(p["std"] == 0, 1.0, p["std"])
+        if m == "max_abs":
+            return X / np.where(p["max_abs"] == 0, 1.0, p["max_abs"])
+        if m == "unit_vector":
+            norms = np.linalg.norm(X, axis=1, keepdims=True)
+            return X / np.where(norms == 0, 1.0, norms)
+        if m == "log":
+            return np.log1p(X)
+        if m == "mean":
+            return (X - p["mean"]) / np.where(p["max"] - p["min"] == 0, 1.0, p["max"] - p["min"])
+        if m == "box_cox":
+            return np.column_stack([_box_cox(c, l) for c, l in zip(X.T, p["lambda"])])
+        if m == "yeo_johnson":
+            return np.column_stack([_yeo_johnson(c, l) for c, l in zip(X.T, p["lambda"])])
+        if m == "quantile":
+            cols = [np.interp(c, np.unique(qc), np.linspace(0, 1, len(np.unique(qc)))) for c, qc in zip(X.T, p["quantiles"].T)]
+            return np.column_stack(cols)
+        raise ValueError(f"unsupported method {m!r}")
+
+    def fit_transform(self, X: np.ndarray) -> np.ndarray:
+        return self.fit(X).transform(X)
